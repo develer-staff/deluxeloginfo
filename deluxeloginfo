@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.19  2004/05/31 19:48:00  bernie
+# Pass 2nd parameter to log_output()
+#
 # Revision 2.18  2004/05/30 16:53:14  bernie
 # Match '+++ ' and '--- ' rather than '+++' and '---' to avoid confusion with second order diffs.
 #
@@ -352,7 +355,7 @@ sub format_output($$$$$\$)
 	# Do nothing for empty file lists
 	if (length($text) == 0)
 	{
-		log_output("Skipping empty log entry");
+		log_output("Skipping empty log entry", "");
 		return ("", "");
 	}
 
