@@ -21,6 +21,9 @@
 #
 #
 # $Log$
+# Revision 2.51  2004/10/06 23:08:08  bernie
+# Scary support for branch names in --rlog mode.
+#
 # Revision 2.50  2004/10/05 01:21:04  bernie
 # Add workaround for branch leaders.
 #
@@ -970,12 +973,12 @@ sub dolog_rlog($$)
 	# A nested data structure to hold all collected log data
 	my $cslist = CSList->new;
 
-	my $tagname = "HEAD"; # TODO: unused
 	my $directory = "";
 	my $date = "";
 	my $author = "";
 	my $outtext = "";
 	my $removed = 0;
+	my %rev_tags;
 
 	if ($commitlog)
 	{
@@ -1013,13 +1016,54 @@ sub dolog_rlog($$)
 		open(RLOG, "-|") || exec 'cvs', '-Qfn', "-d$cvsroot", 'rlog', '-N', "-d$dates", '';
 	}
 
-	while(<RLOG>)
+	LOOP: while(<RLOG>)
 	{
 		if ($state == 1) # parse the header
 		{
 			if (/^RCS file: (.*)$/)
 			{
 				$file = $1;
+				%rev_tags = ();
+			}
+			elsif (/symbolic names:/)
+			{
+				# Collect list of branches and tags:
+				#
+				#   LONDON_DEMO: 1.23
+				#   RELEASE_1_0: 1.14
+				#   RELEASE_1_0_PATCHES: 1.23.0.6
+				#
+				while(<RLOG>)
+				{
+					# Extract the branch name and its revision
+					if (my ($tag, $r) = /^\t(.*): (.*)$/)
+					{
+						my @rev = split('.', $r);
+
+						# Revisions such as "1.27" are obviously not branches
+						next if @rev <= 2;
+
+						# Branch tags have the second last revision number
+						# fixed to 0 (e.g.: 1.23.0.6)
+						next unless ($rev[$#rev - 1] == 0);
+
+						# Chop away the second last revision number
+						@rev = @rev[0 .. ($#rev-2), $#rev];
+
+						# Rebuild the branch revision (e.g.: 1.23.6)
+						$r = join('.', @rev);
+
+						# Create both a direct and reverse
+						# mapping to retrieve branches.
+						$rev_tags{$r} = $tag;
+					}
+					else
+					{
+						# bail out on end of tag list,
+						# reprocessing last input as a valid keyword.
+						redo LOOP;
+					}
+				}
 			}
 			elsif (/^---/)
 			{
@@ -1041,10 +1085,6 @@ sub dolog_rlog($$)
 			elsif (/^revision (.*)/)
 			{
 				$rev = $1;
-			}
-			elsif (/^symbolic names:/)
-			{
-				# TODO: parse branches/revisions pairs
 			}
 			elsif (/^===/)
 			{
@@ -1069,12 +1109,29 @@ sub dolog_rlog($$)
 					undef $r1;
 				}
 
+				# Try to match the file revision with a branch tag
+				my $tagname;
+				BRANCHTAG:
+				{
+					my @revs = split('.', $r2);
+
+					# check whether we have a branch revision number
+					last BRANCHTAG if @revs < 4;
+
+					# Kill the minor revision number
+					pop @revs;
+
+					# Rebuild the branch revision (e.g.: 1.23.6)
+					my $r = join('.', @revs);
+
+					$tagname = $rev_tags{$r} || "UNKNOWN";
+				}
 
 				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2, $tagname, $date);
 
 				$log = "";
 				$state = 2;
-				$state = 1 if (/^===/);
+				$state = 1 if /^===/;
 			}
 			else
 			{
