@@ -22,6 +22,9 @@
 #
 #
 # $Log$
+# Revision 2.42  2004/07/13 23:18:26  bernie
+# Rename --indexlines to --index-lines for consistency.
+#
 # Revision 2.41  2004/07/13 23:12:28  bernie
 # Omit author name before logs with --by-author.
 #
@@ -1134,7 +1137,7 @@ GetOptions(
 	'diff'		=> \$opt_diff,
 	'difflimit=n'	=> \$opt_difflimit,
 	'index:n'	=> \$opt_index,
-	'indexlines:n'	=> \$opt_indexlines,
+	'index-lines:n'	=> \$opt_indexlines,
 
 	'verbose'	=> \$opt_verbose,
 	'help'		=> sub { pod2usage(1); },
@@ -1230,9 +1233,9 @@ deluxeloginfo [options] [<file> ...]
    --diff              show diff for commits (requires --cvsroot)
    --difflimit=n       show up to <n> lines of diff output
    --index[=n]         output a summary of ChangeSets.  If <n> is specified,
-                       the index is shown only when it contains at least <n>
-		       ChangeSets.
-   --indexlines=n      Number of log lines in an index entry (default: 1)
+                       the index is printed only when it contains at least <n>
+		       ChangeSets. Set to 0 to always print the index
+   --index-lines=n     Number of log lines in an index entry (default: 1)
 
    --verbose           turn on verbose diagnostic output
    --help              brief help message
