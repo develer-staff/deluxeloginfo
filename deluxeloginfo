@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.58  2004/11/26 02:27:41  bernie
+# Also consider CVS module to generate stamp file.
+#
 # Revision 2.57  2004/11/24 01:18:20  bernie
 # Don't complain for missing ancestors of new files.
 #
@@ -988,8 +991,9 @@ sub dolog_rlog($$)
 			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
 		}
 
-		# Generate stamp file name from CVSROOT
+		# Generate unique stamp file name from CVSROOT.
 		$stamp = $opt_cvsroot;
+		$stamp .= "/$module" if $module;
 		$stamp =~ tr|:\/\\@.|_____|;
 		$stamp .= ".stamp";
 		$stamp = "$opt_stampdir/$stamp";
