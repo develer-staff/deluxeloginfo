@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.31  2004/06/27 17:45:07  bernie
+# Fold all remaining rogue code into CSList class.
+#
 # Revision 2.30  2004/06/27 10:04:33  bernie
 # Use ChangeLog class in place of bare data structure.
 #
@@ -66,6 +69,23 @@ my $opt_difflimit = 0;
 my $opt_cvsroot = "";
 my $opt_cvsprefix = "";
 my $opt_module = "";
+
+
+#
+# Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
+#
+sub log_output
+{
+	if ($opt_verbose)
+	{
+		my ($msg, $text) = @_;
+		print STDERR "  $msg" . ($text ? ":" : "") . "\n";
+		if ($text)
+		{
+			foreach (split '\n', $text) { print "    $_\n"; }
+		}
+	}
+}
 
 #
 # Hold a file-revision pair
@@ -119,18 +139,16 @@ sub new($$$$$)
 	else
 	{
 		print STDERR "*** Warning: can't parse revision '$rev'\n";
-		$self->{r1} = "NONE";
-		$self->{r2} = "NONE";
 	}
 
 	if ($removed)
 	{
-		$self->{r2} = "NONE";
+		undef $self->{r2};
 	}
 	# Added?
 	elsif ($rev =~ /1\.1$/)
 	{
-		$self->{r1} = "NONE";
+		undef $self->{r1};
 	}
 
 	return $self;
@@ -140,10 +158,10 @@ sub new($$$$$)
 sub filename { return shift->{filename}; }
 
 # Return old file revision
-sub r1 { return shift->{r1}; }
+sub r1 { return shift->{r1} or "NONE"; }
 
 # Return new file revision
-sub r2 { return shift->{r2}; }
+sub r2 { return shift->{r2} or "NONE"; }
 
 
 #
@@ -174,6 +192,73 @@ sub log { return shift->{log}; }
 # Return an array of FileRev objects
 sub files { return @{shift->{files}}; }
 
+#
+# Maintain a collection of ChangeSets sorted by authors and log messages
+#
+package CSList;
+
+sub new($$$)
+{
+	my $class = shift;
+	bless { authors => {} }, $class;
+}
+
+#
+# Augment or add a ChangeSet to the collection with a new FilRev entry
+#
+sub add_filerev
+{
+	my ($self, $author, $log, $filerev) = @_;
+
+	my ($changeset, $l);
+
+	# Do we know this author yet?
+	if (!($l = $self->{authors}{$author}))
+	{
+		main::log_output("Create new author $author");
+		$l = $self->{authors}{$author} = {};
+	}
+
+	# Do we know this log yet?
+	if (!($changeset = ${$l}{$log}))
+	{
+		main::log_output("Create new ChangeSet for $author", $log);
+		$changeset = ChangeSet->new($author, $log); 
+		${$l}{$log} = $changeset;
+	}
+
+	main::log_output("Append new file for $author on " . $filerev->filename
+		. " rev " . $filerev->r1 . " -> " . $filerev->r2);
+	$changeset->add($filerev);
+}
+
+#
+# Construct a FileRev entry and add it with CSList::add_filerev()
+#
+sub add_file
+{
+	my ($self, $author, $log, $cvsdir, $file, $rev, $removed) = @_;
+
+	my $filerev = FileRev->new($cvsdir, $file, $rev, $removed);
+	$self->add_filerev($author, $log, $filerev);
+}
+
+#
+# Return a list containing all author names
+#
+sub authors
+{
+	return keys %{shift->{authors}};
+}
+
+#
+# Return a list containing all changesets for a specified author
+#
+sub changesets
+{
+	my ($self, $author) = @_;
+	return values %{$self->{authors}{$author}};
+}
 
 #
 # Main program
@@ -471,24 +556,6 @@ sub diff2html($)
 ### END: EXPERIMENTAL/UNUSED CODE ###
 }
 
-#
-# Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
-#
-sub log_output
-{
-	if ($opt_verbose)
-	{
-		my ($msg, $text) = @_;
-		print STDERR "  $msg";
-		print STDERR ":" if $text;
-		print STDERR "\n";
-		if ($text)
-		{
-			foreach (split '\n', $text) { print "    $_\n"; }
-		}
-	}
-}
-
 sub format_output($$$$$\$)
 {
 	my ($author, $text, $log, $module, $tagname, $ccrecipients) = @_;
@@ -762,7 +829,7 @@ sub dolog_rlog($$$)
 	my $log = "";
 
 	# A nested data structure to hold all collected log data
-	my %author_logs;
+	my $cslist = CSList->new;
 
 	my $fmtText = "";
 	my $fmtHtml = "";
@@ -848,36 +915,7 @@ sub dolog_rlog($$$)
 			{
 				$log = "*** Empty log message! ***" if !$log;
 
-				my $filerev = FileRev->new($cvsdir, $file, $rev, $removed);
-
-				if (my $l = $author_logs{$author})
-				{
-					if (my $changeset = ${$l}{$log})
-					{
-						log_output("Append new file for $author on $file rev $rev");
-
-						# Append new file to existing log message
-						$changeset->add($filerev);
-					}
-					else
-					{
-						log_output("Create new ChangeSet for $author on $file rev $rev", $log);
-
-						# Create new log message 
-						my $changeset = ChangeSet->new($author, $log); 
-						$changeset->add($filerev);
-						${$l}{$log} = $changeset;
-					}
-				}
-				else
-				{
-					log_output("Create new author $author with $file rev $rev", $log);
-
-					# Create new changeset and append file/rev pair to it
-					my $changeset = ChangeSet->new($author, $log); 
-					$changeset->add($filerev);
-					$author_logs{$author} = { $log => $changeset };
-				}
+				$cslist->add_file($author, $log, $cvsdir, $file, $rev, $removed);
 
 				$log = "";
 				$state = 2;
@@ -900,26 +938,25 @@ sub dolog_rlog($$$)
 	#
 	# Process accumulated logs
 	#
-	foreach my $author (keys %author_logs)
+	foreach my $author ($cslist->authors)
 	{
-		foreach my $log (keys %{$author_logs{$author}})
+		foreach my $changeset ($cslist->changesets($author))
 		{
 			my $outtext = "";
-			my $changeset = @{$author_logs{$author}}{$log};
 
 			#DEBUG
 			#use Dumpvalue;
 			#my $dumper = new Dumpvalue;
-			#print STDERR "****BEGIN filelist ****\n";
-			#$dumper->dumpValue($filelist);
-			#print STDERR "**** END filelist ****\n";
+			#print STDERR "****BEGIN ChangeSet ****\n";
+			#$dumper->dumpValue($changeset);
+			#print STDERR "**** END ChangeSet ****\n";
 
 			foreach my $frev ($changeset->files)
 			{
 				#DEBUG
-				#print STDERR "**** BEGIN filerev ****\n";
+				#print STDERR "**** BEGIN FileRev ****\n";
 				#$dumper->dumpValue($frev);
-				#print STDERR "**** END filerev ****\n";
+				#print STDERR "**** END FileRev ****\n";
 
 				$outtext .= $frev->filename($cvsdir) . "\t" . $frev->r1() . "\t" . $frev->r2() . "\n";
 			}
