@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.62  2004/12/27 01:06:01  bernie
+# Also print CS index in text output.
+#
 # Revision 2.61  2004/12/27 00:32:04  bernie
 # --noascii, --nohtml: New options.
 #
@@ -576,6 +579,7 @@ sub send_mail(\$\$\$$$$$)
 
 	if ($opt_ascii)
 	{
+		print MAIL unhtml($summary);
 		print MAIL $$text;
 		signature_ascii(*MAIL);
 	}
@@ -657,6 +661,31 @@ sub htmlize
 		s/</&lt;/g;
 		s/>/&gt;/g;
 	}
+}
+
+#
+# Remove HTML tags from the passed string(s).
+#
+# Note: When called in void context, arguments are
+#       modified in-place, otherwise new strings
+#	are returned.
+#
+sub unhtml
+{
+	my @copy;
+
+	# Copy arguments if caller expects a result
+	foreach (defined(wantarray) ? @copy = @_ : @_)
+	{
+		s#<br\s*/?>#\n#g;
+		s#</p>#\n#g;
+		s#<(.*?)>##g;
+		s#&amp;#&#g;
+		s#&lt;#<#g;
+		s#&gt;#<#g;
+	}
+
+	return defined(wantarray) ? @copy : undef;
 }
 
 sub diff2html($)
