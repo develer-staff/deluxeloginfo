@@ -18,8 +18,11 @@
 #
 #
 # $Log$
+# Revision 2.29  2004/06/27 09:10:19  bernie
+# Fold even more code into FileRev
+#
 # Revision 2.28  2004/06/27 08:40:32  bernie
-# Fold some code into FileRev
+# Prune CVS log.
 #
 # Revision 2.27  2004/06/27 08:28:36  bernie
 # Prune CVS log.
@@ -66,18 +69,20 @@ my $opt_module = "";
 #
 package FileRev;
 
-sub new($$$$)
+sub new($$$$$)
 {
-	shift; # ignore class (is this good?)
-	bless { file => shift, rev => shift, removed => shift };
-}
+	#
+	# Collect arguments and create instance
+	#
+	my ($class, $cvsdir, $filename, $rev, $removed) = @_;
+	my $self = {};
+	bless $self, $class;
 
-# Return normalized filename
-sub filename($)
-{
-	my ($self, $cvsdir) = @_;
-	my $filename = $self->{file};
+	print STDERR "bernie: $class, $cvsdir, $filename, $rev, $removed\n";
 
+	#
+	# Normalize filename
+	#
 
 	# Prune ,v suffix from filename
 	$filename =~ s|,v$||;
@@ -94,8 +99,51 @@ sub filename($)
 	# Remove any spurious '//' sequences from CVS
 	$filename =~ s|//|/|g;
 
-	return $filename;
+	$self->{filename} = $filename;
+
+	#
+	# Extract old/new revisions
+	#
+
+	# Get major/minor revision numbers
+	my ($r1, $r2);
+
+	# Parse revision numbers such as 1.34 or 1.1.1.23
+	if ($rev =~ /^(.*)\.([0-9]+)$/)
+	{
+		# Guess previous revision
+		$self->{r1} = $1 . "." . ($2 - 1);
+		$self->{r2} = $rev;
+	}
+	else
+	{
+		print STDERR "*** Warning: can't parse revision '$rev'\n";
+		$self->{r1} = "NONE";
+		$self->{r2} = "NONE";
+	}
+
+	if ($removed)
+	{
+		$self->{r2} = "NONE";
+	}
+	# Added?
+	elsif ($rev =~ /1\.1$/)
+	{
+		$self->{r1} = "NONE";
+	}
+
+	return $self;
 }
+
+# Return normalized filename
+sub filename { return shift->{filename}; }
+
+# Return old file revision
+sub r1 { return shift->{r1}; }
+
+# Return new file revision
+sub r2 { return shift->{r2}; }
+
 
 #
 # Main program
@@ -657,6 +705,21 @@ sub dolog_rlog($$$)
 	my ($module, $commitlog, $recipient) = @_;
 	my $stamp;
 
+	#
+	# Extract CVS directory prefix from CVSROOT string
+	#
+	my $cvsdir;
+
+	if ($opt_cvsprefix)
+	{
+		$cvsdir = $opt_cvsprefix;
+	}
+	elsif ($opt_cvsroot and $opt_cvsroot =~ /^:[^:@]*:[^:@]*@[^:@]*:([^:@]+)$/)
+	{
+		$cvsdir = $1;
+	}
+
+
 	# Parser states:
 	#  1 - parsing file header
 	#  2 - parsing revision log
@@ -755,7 +818,7 @@ sub dolog_rlog($$$)
 			{
 				$log = "*** Empty log message! ***" if !$log;
 
-				my $filerev = FileRev->new($file, $rev, $removed);
+				my $filerev = FileRev->new($cvsdir, $file, $rev, $removed);
 
 				if (my $l = $author_logs{$author})
 				{
@@ -801,20 +864,6 @@ sub dolog_rlog($$$)
 	rename "$stamp.new", "$stamp" if ($stamp);
 
 	#
-	# Extract CVS directory prefix from CVSROOT string
-	#
-	my $cvsdir;
-
-	if ($opt_cvsprefix)
-	{
-		$cvsdir = $opt_cvsprefix;
-	}
-	elsif ($opt_cvsroot and $opt_cvsroot =~ /^:[^:@]*:[^:@]*@[^:@]*:([^:@]+)$/)
-	{
-		$cvsdir = $1;
-	}
-
-	#
 	# Process accumulated logs
 	#
 	foreach my $author (keys %author_logs)
@@ -831,44 +880,14 @@ sub dolog_rlog($$$)
 			#$dumper->dumpValue($filelist);
 			#print STDERR "**** END filelist ****\n";
 
-			foreach my $filerev (@$filelist)
+			foreach my $frev (@$filelist)
 			{
 				#DEBUG
 				#print STDERR "**** BEGIN filerev ****\n";
-				#$dumper->dumpValue($filerev);
+				#$dumper->dumpValue($frev);
 				#print STDERR "**** END filerev ****\n";
 
-				my ($rev, $removed) = ( $$filerev{rev}, $$filerev{removed} );
-
-				# Get major/minor revision numbers
-				my ($r1, $r2);
-
-				# Parse revision numbers such as 1.34 or 1.1.1.23
-				if ($rev =~ /^(.*)\.([0-9]+)$/)
-				{
-					# Guess previous revision
-					$r1 = $1 . "." . ($2 - 1);
-					$r2 = $rev;
-				}
-				else
-				{
-					print STDERR "*** Warning: can't parse revision '$rev'\n";
-					$r1 = "NONE";
-					$r2 = "NONE";
-				}
-
-				if ($removed)
-				{
-					$r2 = "NONE";
-				}
-				# Added?
-				elsif ($rev =~ /1\.1$/)
-				{
-					$r1 = "NONE";
-				}
-
-				my $filename = $filerev->filename($cvsdir);
-				$outtext .= "$filename\t$r1\t$r2\n";
+				$outtext .= $frev->filename($cvsdir) . "\t" . $frev->r1() . "\t" . $frev->r2() . "\n";
 			}
 
 			my @out = format_output($author, $outtext, $log, $module, $tagname, $ccrecipients);
