@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.23  2004/06/24 22:26:14  bernie
+# Use iso-8859-1 encoding for better compatibility with CVS logs edited with Windows frontends.
+#
 # Revision 2.22  2004/06/24 01:31:46  bernie
 # Update Copyright info.
 #
@@ -212,7 +215,7 @@ This is a multi-part message in MIME format.
 
 --Boundary-00=_R+zZ+ucfVzM1q7w
 Content-Type: text/plain;
-  charset="UTF-8"
+  charset="iso-8859-1"
 Content-Disposition: inline
 
 $$text
@@ -223,7 +226,7 @@ http://www.codewiz.org/projects/index.html#loginfo
 
 --Boundary-00=_R+zZ+ucfVzM1q7w
 Content-Type: text/html;
-  charset="UTF-8"
+  charset="iso-8859-1"
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
