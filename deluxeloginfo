@@ -21,6 +21,9 @@
 #
 #
 # $Log$
+# Revision 2.45  2004/07/15 22:24:45  bernie
+# htmlize(): Fix it to escape the argument and not a copy.
+#
 # Revision 2.44  2004/07/14 23:23:48  bernie
 # Also HTMLize log messages.
 #
@@ -507,12 +510,12 @@ sub dodiff($$$$)
 	return $diff;
 }
 
-sub htmlize(\$)
+#
+# Escape characters with special meaning for HTML in the passed string(s).
+#
+sub htmlize
 {
-	local $_ = shift;
-	s/&/&amp;/g;
-	s/</&lt;/g;
-	s/>/&gt;/g;
+	foreach @_ { s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; }
 }
 
 sub diff2html($)
@@ -683,7 +686,7 @@ sub format_output($$$\$)
 
 			if ($state eq 'M')
 			{
-				$statelink = "<a href=\"$opt_cvsurl$module_path/$file.diff?r1=text&amp;tr1=$r1&amp;r2=text&tr2=$r2&amp;diff_format=h\">$state</a>";
+				$statelink = "<a href=\"$opt_cvsurl$module_path/$file.diff?r1=text&amp;tr1=$r1&amp;r2=text&amp;tr2=$r2&amp;diff_format=h\">$state</a>";
 			}
 			elsif ($state eq 'A')
 			{
