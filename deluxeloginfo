@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.32  2004/06/27 18:32:39  bernie
+# Sort ChangeSets in ascending date order.
+#
 # Revision 2.31  2004/06/27 17:45:07  bernie
 # Fold all remaining rogue code into CSList class.
 #
@@ -92,13 +95,13 @@ sub log_output
 #
 package FileRev;
 
-sub new($$$$$)
+sub new($$$$$$)
 {
 	#
 	# Collect arguments and create instance
 	#
-	my ($class, $cvsdir, $filename, $rev, $removed) = @_;
-	my $self = {};
+	my ($class, $cvsdir, $filename, $rev, $date, $removed) = @_;
+	my $self = { date => $date };
 	bless $self, $class;
 
 	#
@@ -163,6 +166,9 @@ sub r1 { return shift->{r1} or "NONE"; }
 # Return new file revision
 sub r2 { return shift->{r2} or "NONE"; }
 
+# Return commit timestamp
+sub date { return shift->{date}; }
+
 
 #
 # Handle a list of changed files, the associated log message and the author
@@ -173,14 +179,23 @@ package ChangeSet;
 sub new($$$)
 {
 	my $class = shift;
-	bless { author => shift, log => shift, files => [] }, $class;
+	bless {
+		author => shift,
+		log => shift,
+		files => [],
+		date => "1970/01/01 00:00:00"
+	}, $class;
 }
 
 # Add a new FileRev entry
 sub add
 {
-	my $self = shift;
-	push @{$self->{files}}, shift;
+	my ($self, $filerev) = @_;
+
+	push @{$self->{files}}, $filerev;
+
+	# Collect date of newest change
+	$self->{date} = $filerev->{date} if ($self->{date} lt $filerev->{date} )
 }
 
 # Retrieve the author name
@@ -191,6 +206,7 @@ sub log { return shift->{log}; }
 
 # Return an array of FileRev objects
 sub files { return @{shift->{files}}; }
+
 
 #
 # Maintain a collection of ChangeSets sorted by authors and log messages
@@ -237,9 +253,9 @@ sub add_filerev
 #
 sub add_file
 {
-	my ($self, $author, $log, $cvsdir, $file, $rev, $removed) = @_;
+	my ($self, $author, $log, $cvsdir, $file, $rev, $date, $removed) = @_;
 
-	my $filerev = FileRev->new($cvsdir, $file, $rev, $removed);
+	my $filerev = FileRev->new($cvsdir, $file, $rev, $date, $removed);
 	$self->add_filerev($author, $log, $filerev);
 }
 
@@ -252,13 +268,16 @@ sub authors
 }
 
 #
-# Return a list containing all changesets for a specified author
+# Return a list containing all ChangeSet objects for a specified author
+# the list is sorted in ascending date order
 #
 sub changesets
 {
 	my ($self, $author) = @_;
-	return values %{$self->{authors}{$author}};
+
+	return sort { $a->{date} cmp $b->{date} } values %{$self->{authors}{$author}};
 }
+
 
 #
 # Main program
@@ -836,6 +855,7 @@ sub dolog_rlog($$$)
 	my $tagname = "HEAD";
 	my $ccrecipients = "";
 	my $directory = "";
+	my $date = "";
 	my $author = "";
 	my $outtext = "";
 	my $removed = 0;
@@ -898,10 +918,11 @@ sub dolog_rlog($$$)
 				$rev = $1;
 			}
 			# EXAMPLE: date: 2003/11/26 19:46:57;  author: codewiz;  state: dead;  lines: +0 -0
-			elsif (/^date:[^;]*; *author: *([^;]*); *state:([^;]*);/)
+			elsif (/^date: *([^;]*); *author: *([^;]*); *state:([^;]*);/)
 			{
-				$author = $1;
-				$removed = ($2 =~ /dead/) ? 1 : 0;
+				$date = $1;
+				$author = $2;
+				$removed = ($3 =~ /dead/) ? 1 : 0;
 				$state = 3;
 			}
 			elsif (/^===/)
@@ -915,7 +936,7 @@ sub dolog_rlog($$$)
 			{
 				$log = "*** Empty log message! ***" if !$log;
 
-				$cslist->add_file($author, $log, $cvsdir, $file, $rev, $removed);
+				$cslist->add_file($author, $log, $cvsdir, $file, $rev, $date, $removed);
 
 				$log = "";
 				$state = 2;
@@ -961,7 +982,7 @@ sub dolog_rlog($$$)
 				$outtext .= $frev->filename($cvsdir) . "\t" . $frev->r1() . "\t" . $frev->r2() . "\n";
 			}
 
-			my @out = format_output($author, $outtext, $log, $module, $tagname, $ccrecipients);
+			my @out = format_output($author, $outtext, $changeset->{log}, $module, $tagname, $ccrecipients);
 			$fmtText .= $out[0];
 			$fmtHtml .= $out[1];
 
