@@ -22,6 +22,9 @@
 #
 #
 # $Log$
+# Revision 2.39  2004/07/09 09:24:27  bernie
+# Fix Bug # 426.
+#
 # Revision 2.38  2004/06/29 10:04:03  bernie
 # Some --help corrections.
 #
@@ -342,7 +345,7 @@ sub bugzillate($)
 {
 	return if !$opt_bugurl;
 
-	$_[0] =~ s#\#(\d{2,6})#<a href='$opt_bugurl?id=$1'>\#$1</a>#g;
+	$_[0] =~ s!#\s*(\d{2,6})!<a href='$opt_bugurl?id=$1'>#$1</a>!g;
 }
 
 sub send_mail(\$\$\$$$$$)
@@ -357,7 +360,8 @@ sub send_mail(\$\$\$$$$$)
 	}
 
 	# Avoid summary with just one ChangeSet
-	if ((split /^/, $$summary) <= 1)
+	my @foo = split /^/, $$summary;
+	if (@foo <= 1)
 	{
 		$summary = "";
 	}
