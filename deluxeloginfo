@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.57  2004/11/24 01:18:20  bernie
+# Don't complain for missing ancestors of new files.
+#
 # Revision 2.56  2004/11/24 00:32:05  bernie
 # Fix module handling for --rlog mode.
 #
@@ -811,6 +814,9 @@ sub guess_ancestor($)
 	my ($rev) = @_;
 	my $old;
 
+	# New files don't have an ancestor
+	return undef if $rev =~ /1\.1$/;
+
 	# Parse revision numbers such as 1.34 or 1.7.2.42
 	# Assign the radix (i.e.: 1.7.2) and the minor (i.e.: 42)
 	if (my ($radix, $minor) = ($rev =~ /^([\d.]+)\.(\d+)$/))
@@ -1107,19 +1113,8 @@ sub dolog_rlog($$)
 			if (/^---/ or /^===/)
 			{
 				# Compute old/new revision numbers
-				my $r1;
-
-				$r1 = guess_ancestor($r2);
-
-				if ($removed)
-				{
-					undef $r2;
-				}
-				# New file?
-				elsif ($r2 =~ /1\.1$/)
-				{
-					undef $r1;
-				}
+				my $r1 = guess_ancestor($r2);
+				undef $r2 if $removed;
 
 				# Try to match the file revision with a branch tag
 				# Make sure we have a branch revision number
