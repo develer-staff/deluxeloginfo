@@ -15,6 +15,9 @@
 #
 #
 # $Log$
+# Revision 2.3  2003/11/26 22:15:59  bernie
+# Handle removed files correctly in --rlog mode.
+#
 # Revision 2.2  2003/11/26 21:46:41  bernie
 # Properly add MIME end boundary.
 #
@@ -540,6 +543,7 @@ sub dolog_rlog($$$)
 	my $author = "";
 	my $outtext = "";
 	my $silentcommit = 0; # TODO
+	my $removed = 0;
 
 	if ($commitlog)
 	{
@@ -588,6 +592,8 @@ sub dolog_rlog($$$)
 			elsif (/^---/)
 			{
 				$state = 2;
+				$author = "UNKNOWN";
+				$removed = 0;
 			}
 		}
 		elsif ($state == 2) # parse revision log
@@ -596,9 +602,11 @@ sub dolog_rlog($$$)
 			{
 				$rev = $1;
 			}
-			elsif (/date:[^;]*; *author: *([^;]*);.*/)
+			# EXAMPLE: date: 2003/11/26 19:46:57;  author: codewiz;  state: dead;  lines: +0 -0
+			elsif (/^date:[^;]*; *author: *([^;]*); *state:([^;]*);/)
 			{
 				$author = $1;
+				$removed = ($2 =~ /dead/) ? 1 : 0;
 				$state = 3;
 			}
 			elsif (/^===/)
@@ -619,7 +627,7 @@ sub dolog_rlog($$$)
 						print STDERR "  Append new file for $author on $file rev $rev:\n" if ($opt_verbose);
 
 						# Append new file to existing log message
-						push @$f, [ $file, $rev ];
+						push @$f, [ $file, $rev, $removed ];
 					}
 					else
 					{
@@ -630,7 +638,7 @@ sub dolog_rlog($$$)
 						}
 
 						# Create new log message 
-						${$l}{$log} = [ [ $file, $rev ] ];
+						${$l}{$log} = [ [ $file, $rev, $removed ] ];
 					}
 				}
 				else
@@ -642,7 +650,7 @@ sub dolog_rlog($$$)
 					}
 
 					# Create new log message and append file/rev pair to it
-					$author_logs{$author} = { $log => [ [$file, $rev] ] };
+					$author_logs{$author} = { $log => [ [ $file, $rev, $removed ] ] };
 				}
 
 				$log = "";
@@ -693,14 +701,14 @@ sub dolog_rlog($$$)
 			#$dumper->dumpValue($filelist);
 			#print STDERR "**** END filelist ****\n";
 
-			foreach my $filepair (@$filelist)
+			foreach my $fileinfo (@$filelist)
 			{
 				#DEBUG
-				#print STDERR "**** BEGIN filepair ****\n";
-				#$dumper->dumpValue($filepair);
-				#print STDERR "**** END filepair ****\n";
+				#print STDERR "**** BEGIN fileinfo ****\n";
+				#$dumper->dumpValue($fileinfo);
+				#print STDERR "**** END fileinfo ****\n";
 
-				my ($filename, $rev) = @$filepair;
+				my ($filename, $rev, $removed) = @$fileinfo;
 
 				# Prune ,v suffix from filename
 				$filename =~ s|,v$||;
@@ -713,6 +721,8 @@ sub dolog_rlog($$$)
 
 				# Get major/minor revision numbers
 				my ($r1, $r2);
+
+				# Parse revision numbers such as 1.34 or 1.1.1.23
 				if ($rev =~ /^(.*)\.([0-9]+)$/)
 				{
 					# Guess previous revision
@@ -726,13 +736,14 @@ sub dolog_rlog($$$)
 					$r2 = "NONE";
 				}
 
-				if ($rev =~ /1\.1$/)
-				{
-					$r1 = "NONE";
-				}
-				elsif (0)
+				if ($removed)
 				{
 					$r2 = "NONE";
+				}
+				# Added?
+				elsif ($rev =~ /1\.1$/)
+				{
+					$r1 = "NONE";
 				}
 
 				$outtext .= "$filename\t$r1\t$r2\n";
