@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.9  2003/12/11 02:11:28  bernie
+# Add a kludge for added files.
+#
 # Revision 2.8  2003/12/10 11:29:11  bernie
 # Show diff for added files.
 # Handle corner-case for files with very long lines.
@@ -230,6 +233,9 @@ sub dodiff($$$$)
 
 	# Avoid diffs for files removed from CVS
 	return "" if ($r2 eq "NONE");
+
+	# Workaround for first revion of added files (does only work with rdiff!)
+	$r1 = "1.0" if ($r1 eq "NONE");
 
 	# Regex to match source files (doesn't work with cvs rdiff)
 	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)$';
