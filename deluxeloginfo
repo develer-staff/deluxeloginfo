@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.12  2004/04/13 05:53:17  bernie
+# Fix for CVS problems parsing CEST time zone.
+#
 # Revision 2.11  2004/01/18 07:19:23  bernie
 # Print verbose output when not sending empty mails.
 #
@@ -629,12 +632,12 @@ sub dolog_rlog($$$)
 
 		# Get timestamp from file, touch it and get filestamp again
 		my $dates;
-		$dates = `date -r $stamp`;
+		$dates = `date --rfc-2822 -r $stamp`;
 		chomp $dates;
 		$dates = 'yesterday' if (!$dates);
 		`touch $stamp.new`; # Update stamp file
 		$dates .= "<";
-		$dates .= `date -r $stamp.new`;
+		$dates .= `date --rfc-2822 -r $stamp.new`;
 		chomp $dates;
 
 		print STDERR "+ cvs -Qfn -d$cvsroot rlog -N -d '$dates' ''\n" if $opt_verbose;
