@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.25  2004/06/27 08:25:16  bernie
+# Ubiquitous usage of log_output().
+#
 # Revision 2.24  2004/06/27 08:17:29  bernie
 # Introduce OO syntax for file revisions.
 #
@@ -390,13 +393,21 @@ sub diff2html($)
 	}
 }
 
-sub log_output($$)
+#
+# Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
+#
+sub log_output
 {
 	if ($opt_verbose)
 	{
 		my ($msg, $text) = @_;
-		print STDERR "  $msg:\n";
-		foreach (split '\n', $text) { print "    $_\n"; }
+		print STDERR "  $msg";
+		print STDERR ":" if $text;
+		print STDERR "\n";
+		if ($text)
+		{
+			foreach (split '\n', $text) { print "    $_\n"; }
+		}
 	}
 }
 
@@ -750,18 +761,14 @@ sub dolog_rlog($$$)
 				{
 					if (my $f = ${$l}{$log})
 					{
-						print STDERR "  Append new file for $author on $file rev $rev:\n" if ($opt_verbose);
+						log_output("Append new file for $author on $file rev $rev");
 
 						# Append new file to existing log message
 						push @$f, $filerev;
 					}
 					else
 					{
-						if ($opt_verbose)
-						{
-							print STDERR "  Create new log for $author on $file rev $rev:\n";
-							foreach (split '\n',$log) { print STDERR "    $_\n"; };
-						}
+						log_output("Create new log for $author on $file rev $rev", $log);
 
 						# Create new log message 
 						${$l}{$log} = [ $filerev ];
@@ -769,11 +776,7 @@ sub dolog_rlog($$$)
 				}
 				else
 				{
-					if ($opt_verbose)
-					{
-						print STDERR "  Create new author $author with $file rev $rev:\n";
-						foreach (split '\n',$log) { print STDERR "    $_\n"; };
-					}
+					log_output("Create new author $author with $file rev $rev", $log);
 
 					# Create new log message and append file/rev pair to it
 					$author_logs{$author} = { $log => [ $filerev ] };
