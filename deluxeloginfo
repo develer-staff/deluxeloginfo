@@ -21,6 +21,9 @@
 #
 #
 # $Log$
+# Revision 2.50  2004/10/05 01:21:04  bernie
+# Add workaround for branch leaders.
+#
 # Revision 2.49  2004/08/09 18:36:18  bernie
 # Remove a few FIXMEs.
 #
@@ -214,7 +217,7 @@ sub files { return @{shift->{files}}; }
 
 
 #
-# Maintain a collection of ChangeSets sorted by authors and log messages
+# Maintain a collection of ChangeSets sorted by authors and log messages.
 #
 package CSList;
 
@@ -225,7 +228,8 @@ sub new($$$)
 }
 
 #
-# Augment or add a ChangeSet to the collection with a new FilRev entry
+# Add a new FileRev entry to an existing ChangeSet.
+# If no ChangeSet exists for the given log, create a new one.
 #
 sub add_filerev
 {
@@ -269,7 +273,7 @@ sub add_file
 }
 
 #
-# Return a list containing all author names
+# Return a list containing all author names.
 #
 sub authors
 {
@@ -278,7 +282,7 @@ sub authors
 
 #
 # Return a list containing all ChangeSet objects for a specified author
-# the list is sorted in ascending date order
+# the list is sorted in ascending date order.
 #
 sub changesets
 {
@@ -331,7 +335,7 @@ sub create_empty_file($$$)
 
 sub bugzillate($)
 {
-	return if !$opt_bugurl;
+	return unless $opt_bugurl;
 
 	$_[0] =~ s{#\s*(\d{2,6})}{<a href='$opt_bugurl?id=$1'>#$1</a>}g;
 }
@@ -783,6 +787,45 @@ sub process_cslist($$$)
 	}
 }
 
+#
+# Helper for dolog_rlog().
+# Parse a CVS revision number and return a list of two
+# revisions: the ancestor and the current revision.
+#
+sub guess_ancestor($)
+{
+	my ($rev) = @_;
+	my ($r1, $r2);
+
+	# Parse revision numbers such as 1.34 or 1.7.2.42
+	# Assign the radix (i.e.: 1.7.2) and the minor (i.e.: 42)
+	if (my ($radix, $minor) = ($rev =~ /^([\d.]+)\.(\d+)$/))
+	{
+		# The new revision is actually what we already have
+		$r2 = $rev;
+
+		# Guess the ancestor: usually one less than the new revision
+		$r1 = $radix . "." . --$minor;
+
+		# If the ancestor's minor revision was 0, perhaps we
+		# were working with the first revision of a branch. 
+		#
+		# We can't just diff between version 1.9.2.0 and
+		# 1.9.2.1, because the former doesn't exist and CVS
+		# would diff against /dev/null.
+		#
+		# The correct ancestor in this example would be 1.9.
+		#
+		($minor <= 0) and $r1 = ($radix =~ /^([\d.]+)\.\d+\.\d+$/);
+	}
+
+	unless (defined($r1))
+	{
+		print STDERR "*** Warning: can't parse revision '$rev'\n";
+	}
+
+	return ($r1, $r2);
+}
 
 #
 # Process commitlog files
@@ -811,7 +854,7 @@ sub dolog_commitlog($$)
 			next if /^\s*$/;
 			$juststarted = 0;
 			chop;
-			if(/^(\S*) (.*)$/)
+			if (/^(\S*) (.*)$/)
 			{
 				$directory = $1;
 				$_ = $2;
@@ -819,9 +862,9 @@ sub dolog_commitlog($$)
 
 			# "directory - New Directory" ?
 			# "directory - Import sources" ?
-			next if(/^- /);
+			next if /^- /;
 
-			while(/^([^,]+,(?:NONE|[\d\.]+),(?:NONE|[\d\.]+)) ?(.*)/)
+			while (/^([^,]+,(?:NONE|[\d\.]+),(?:NONE|[\d\.]+)) ?(.*)/)
 			{
 				push @files, $1;
 				$_ = $2;
@@ -1014,19 +1057,7 @@ sub dolog_rlog($$)
 			if (/^---/ or /^===/)
 			{
 				# Compute old/new revision numbers
-				my ($r1, $r2);
-
-				# Parse revision numbers such as 1.34 or 1.1.1.23
-				if ($rev =~ /^(.*)\.([0-9]+)$/)
-				{
-					# Guess previous revision
-					$r1 = $1 . "." . ($2 - 1);
-					$r2 = $rev;
-				}
-				else
-				{
-					print STDERR "*** Warning: can't parse revision '$rev'\n";
-				}
+				my ($r1, $r2) = guess_ancestor($rev);
 
 				if ($removed)
 				{
@@ -1130,7 +1161,7 @@ if (($opt_prjtab || $opt_rlog) && @ARGV)
 	pod2usage(1);
 }
 
-if($opt_prjtab)
+if ($opt_prjtab)
 {
 	print STDERR "Opening prjtab file: $opt_prjtab...\n" if $opt_verbose;
 	open PRJTAB, $opt_prjtab or die "couldn't open $opt_prjtab: $!\n";
@@ -1148,7 +1179,7 @@ if($opt_prjtab)
 		$commitlog = "$cvsdir/commitlog.new" if !$opt_rlog;
 
 		# Strip away CVS directory when using rlog
-		$opt_cvsprefix=$cvsdir if ($opt_rlog);
+		$opt_cvsprefix = $cvsdir if ($opt_rlog);
 
 		dolog($prjname, $commitlog, $email);
 	}
