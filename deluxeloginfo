@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.34  2004/06/27 20:10:54  bernie
+# Colorize added/removed files;  Nicer column widths for the file list.
+#
 # Revision 2.33  2004/06/27 19:36:28  bernie
 # Grand Code Paths Unification.
 #
@@ -164,10 +167,10 @@ sub new($$$$$$)
 sub filename { return shift->{filename}; }
 
 # Return old file revision
-sub r1 { return shift->{r1} or "NONE"; }
+sub r1 { return shift->{r1} || "NONE"; }
 
 # Return new file revision
-sub r2 { return shift->{r2} or "NONE"; }
+sub r2 { return shift->{r2} || "NONE"; }
 
 # Return commit timestamp
 sub date { return shift->{date}; }
@@ -592,14 +595,14 @@ sub format_output($$$$$\$)
 	# Do nothing for empty file lists
 	if (length($text) == 0)
 	{
-		log_output("Skipping empty log entry", "");
+		log_output("Skipping empty log entry");
 		return ("", "");
 	}
 
 	if ($log =~ /CVS.?SILENT/)
 	{
 		# Ignore this commit and reset silent status
-		log_output("Ignoring commit by $author", $log);
+		log_output("Ignoring commit by $author because of CVSSILENT", $log);
 		return ("", "");
 	}
 
@@ -649,15 +652,15 @@ sub format_output($$$$$\$)
 			my $module_path = "";
 			$module_path = "/$module" if $module;
 
-			if($state eq 'M')
+			if ($state eq 'M')
 			{
 				$statelink = "<a href=\"$opt_cvsurl$module_path/$file.diff?r1=text&tr1=$r1&r2=text&tr2=$r2&diff_format=h\">$state</a>";
 			}
-			elsif($state eq 'A')
+			elsif ($state eq 'A')
 			{
 				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$r2&content-type=text/vnd.viewcvs-markup\">$state</a>";
 			}
-			elsif($state eq 'R')
+			elsif ($state eq 'R')
 			{
 				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$r1&content-type=text/vnd.viewcvs-markup\">$state</a>";
 			}
@@ -665,7 +668,13 @@ sub format_output($$$$$\$)
 
 		$diff .= dodiff($module, $file, $r1, $r2) if ($opt_diff);
 
-		$fmtHtml .= "<tr><td>$statelink</td><td>$rev</td><td>$file</td></tr>\n";
+		my $color = "";
+		my $color_end = "";
+		if ($state eq 'A') { $color = '<font color="#000088">' };
+		if ($state eq 'R') { $color = '<font color="#880000">' };
+		$color_end = "</font>" if $color;
+
+		$fmtHtml .= "<tr><td width='1%'>$statelink</td><td width='1%'>$color$rev$color_end</td><td width='100%'>$color$file$color_end</td></tr>\n";
 	}
 
 	# Put some spacing between the file list and the diff
