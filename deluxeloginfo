@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.55  2004/11/24 00:16:04  bernie
+# Simplify/fix prjtab parsing.
+#
 # Revision 2.54  2004/11/24 00:12:56  bernie
 # Fix documentation style to match GNU standards.
 #
@@ -1229,12 +1232,13 @@ if ($opt_prjtab)
 
 	while (<PRJTAB>)
 	{
+		chomp;
+
 		# Skip comments and blank lines
 		next if /^#/ or /^\s*$/;
 
-		# NOTE: email hogs all remaining fields (\n must be chomped)
+		# NOTE: email hogs all remaining fields
 		my ($prjname, $cvsdir, $email) = split(' ', $_, 3);
-		chomp $email;
 
 		my $commitlog;
 		$commitlog = "$cvsdir/commitlog.new" if !$opt_rlog;
