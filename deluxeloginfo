@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.33  2004/06/27 19:36:28  bernie
+# Grand Code Paths Unification.
+#
 # Revision 2.32  2004/06/27 18:32:39  bernie
 # Sort ChangeSets in ascending date order.
 #
@@ -227,6 +230,9 @@ sub add_filerev
 	my ($self, $author, $log, $filerev) = @_;
 
 	my ($changeset, $l);
+
+	# Complain for missing log entries
+	$log = "*** Empty log message! ***" if !$log;
 
 	# Do we know this author yet?
 	if (!($l = $self->{authors}{$author}))
@@ -680,26 +686,80 @@ sub format_output($$$$$\$)
 }
 
 #
-# Process commitlog files
+# Process accumulated logs
 #
-sub dolog_commitlog($$$)
+sub process_cslist($$$)
 {
-	my ($module, $commitlog, $recipient) = @_;
-
-	# initialize with the default values
+	my ($cslist, $module, $recipient) = @_;
 	my $fmtText = "";
 	my $fmtHtml = "";
-	my $tagname = "HEAD";
 	my $ccrecipients = "";
+	my $tagname = "HEAD"; # FIXME
+
+	foreach my $author ($cslist->authors)
+	{
+		foreach my $changeset ($cslist->changesets($author))
+		{
+			my $outtext = "";
+
+			#DEBUG
+			#use Dumpvalue;
+			#my $dumper = new Dumpvalue;
+			#print STDERR "****BEGIN ChangeSet ****\n";
+			#$dumper->dumpValue($changeset);
+			#print STDERR "**** END ChangeSet ****\n";
+
+			foreach my $frev ($changeset->files)
+			{
+				#DEBUG
+				#print STDERR "**** BEGIN FileRev ****\n";
+				#$dumper->dumpValue($frev);
+				#print STDERR "**** END FileRev ****\n";
+
+				$outtext .= $frev->filename() . "\t" . $frev->r1() . "\t" . $frev->r2() . "\n";
+			}
+
+			my @out = format_output($author, $outtext, $changeset->{log}, $module, $tagname, $ccrecipients);
+			$fmtText .= $out[0];
+			$fmtHtml .= $out[1];
+		}
+
+		if ($opt_byauthor)
+		{
+			send_mail($fmtText, $fmtHtml, $module, $recipient, $ccrecipients, $author);
+
+			# Reset accumulated output
+			$fmtText = $fmtHtml = "";
+			$ccrecipients = "";
+		}
+	}
+
+	if (!$opt_byauthor)
+	{
+		send_mail($fmtText, $fmtHtml, $module, $recipient, $ccrecipients, undef);
+	}
+}
+
+
+#
+# Process commitlog files
+#
+sub dolog_commitlog($$)
+{
+	my ($module, $commitlog) = @_;
+
+	# initialize with the default values
+	my $tagname = "HEAD";
 	my $juststarted = 1;
 	my $beforelogmsg = 1;
 	my $directory = "";
 	my $author = "";
-	my $outtext = "";
+	my $relfile = "";
+	my $r1 = "";
+	my $r2 = "";
 	my $logmessage = "";
-	my $prev_author = "";
-	my $prev_outtext = "";
-	my $prev_logmessage = "";
+	my $date = "1970/01/01 00:00:00";
+	my $cslist = CSList->new();
 
 	open COMMITLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
 
@@ -731,9 +791,9 @@ sub dolog_commitlog($$$)
 			foreach my $f (@files)
 			{
 				next if (!length($f));
-				my ($file,$r1,$r2) = $f =~ /(.+),(.+),(.+)/;
-				my $relfile = "$directory/$file";
-				$outtext .= "$relfile\t$r1\t$r2\n";
+				my $file;
+				($file,$r1,$r2) = $f =~ /(.+),(.+),(.+)/;
+				$relfile = "$directory/$file";
 			}
 		}
 		elsif ($beforelogmsg)
@@ -741,9 +801,10 @@ sub dolog_commitlog($$$)
 			next if (/^Update of /);
 			next if (/^In directory /);
 
-			if (/^Author: \s*(\S+)/) { $author = $1;      }
-			elsif (/^\s*Tag: (\S+)/) { $tagname = $1;     }
-			elsif (/^Log Message:/)  { $beforelogmsg = 0; }
+			if (/^Author: \s*(\S+)/)  { $author = $1;      }
+			elsif (/^Date: \s*(.+)$/) { $date = $1;        }
+			elsif (/^\s*Tag: (\S+)/)  { $tagname = $1;     }
+			elsif (/^Log Message:/)   { $beforelogmsg = 0; }
 		}
 		else
 		{
@@ -751,49 +812,29 @@ sub dolog_commitlog($$$)
 			{
 				while (chomp $logmessage) {}
 
-				if (($prev_logmessage eq $logmessage) && ($prev_author eq $author))
-				{
-					# Append current output to previous output
-					log_output("Merging commit by $author", $outtext);
-					$prev_outtext .= $outtext;
-				}
-				else
-				{
-					# Process previous output
-					my @out = format_output($prev_author, $prev_outtext, $prev_logmessage, $module, $tagname, $ccrecipients);
-					$fmtText .= $out[0];
-					$fmtHtml .= $out[1];
-
-					# Save current state for later
-					$prev_author = $author;
-					$prev_outtext = $outtext;
-					$prev_logmessage = $logmessage;
-				}
+				# FIXME: relfile ?
+				# FIXME: $r1/$r2 ?
+				# FIXME: $date ?
+				$cslist->add_file($author, $logmessage, "", $relfile, $r1, $date, $r2 eq "NONE");
 
 				# Restart
 				$directory = "";
+				$relfile = "";
+				$r1 = $r2 = "";
 				$logmessage = "";
-				$outtext = "";
 				$juststarted = 1;
 				$beforelogmsg = 1;
+				$date = "1970/01/01 00:00:00";
 			}
 			else
 			{
 				# Collect log message
-				$logmessage .= "\t" . $_;
+				$logmessage .= $_;
 			}
 		}
 	}
 
 	close COMMITLOG;
-
-	# process last output set
-	my @out = format_output($prev_author, $prev_outtext, $prev_logmessage, $module, $tagname, $ccrecipients);
-	$fmtText .= $out[0];
-	$fmtHtml .= $out[1];
-
-	# Send mail
-	send_mail($fmtText, $fmtHtml, $module, $recipient, $ccrecipients, undef);
 
 	# Rotate log file
 	if (!$opt_keeplogs)
@@ -811,14 +852,16 @@ sub dolog_commitlog($$$)
 		append_file($commitlog, $oldlog);
 		create_empty_file($commitlog, "cvs", 0660);
 	}
+
+	return $cslist;
 }
 
 #
 # Process cvs rlog output
 #
-sub dolog_rlog($$$)
+sub dolog_rlog($$)
 {
-	my ($module, $commitlog, $recipient) = @_;
+	my ($module, $commitlog) = @_;
 	my $stamp;
 
 	#
@@ -850,10 +893,7 @@ sub dolog_rlog($$$)
 	# A nested data structure to hold all collected log data
 	my $cslist = CSList->new;
 
-	my $fmtText = "";
-	my $fmtHtml = "";
-	my $tagname = "HEAD";
-	my $ccrecipients = "";
+	my $tagname = "HEAD"; # FIXME: unused
 	my $directory = "";
 	my $date = "";
 	my $author = "";
@@ -934,8 +974,6 @@ sub dolog_rlog($$$)
 		{
 			if (/^---/ or /^===/)
 			{
-				$log = "*** Empty log message! ***" if !$log;
-
 				$cslist->add_file($author, $log, $cvsdir, $file, $rev, $date, $removed);
 
 				$log = "";
@@ -956,56 +994,13 @@ sub dolog_rlog($$$)
 	# Commit date for next log
 	rename "$stamp.new", "$stamp" if ($stamp);
 
-	#
-	# Process accumulated logs
-	#
-	foreach my $author ($cslist->authors)
-	{
-		foreach my $changeset ($cslist->changesets($author))
-		{
-			my $outtext = "";
-
-			#DEBUG
-			#use Dumpvalue;
-			#my $dumper = new Dumpvalue;
-			#print STDERR "****BEGIN ChangeSet ****\n";
-			#$dumper->dumpValue($changeset);
-			#print STDERR "**** END ChangeSet ****\n";
-
-			foreach my $frev ($changeset->files)
-			{
-				#DEBUG
-				#print STDERR "**** BEGIN FileRev ****\n";
-				#$dumper->dumpValue($frev);
-				#print STDERR "**** END FileRev ****\n";
-
-				$outtext .= $frev->filename($cvsdir) . "\t" . $frev->r1() . "\t" . $frev->r2() . "\n";
-			}
-
-			my @out = format_output($author, $outtext, $changeset->{log}, $module, $tagname, $ccrecipients);
-			$fmtText .= $out[0];
-			$fmtHtml .= $out[1];
-
-		}
-
-		if ($opt_byauthor)
-		{
-			# Send mail
-			send_mail($fmtText, $fmtHtml, $module, $recipient, $ccrecipients, $author);
-			$fmtText = $fmtHtml = "";
-		}
-	}
-
-	if (!$opt_byauthor)
-	{
-		# Send mail
-		send_mail($fmtText, $fmtHtml, $module, $recipient, $ccrecipients, undef);
-	}
+	return $cslist;
 }
 
 sub dolog($$$)
 {
 	my ($module, $commitlog, $recipient) = @_;
+	my $cslist;
 
 	if ($opt_verbose)
 	{
@@ -1017,12 +1012,14 @@ sub dolog($$$)
 
 	if ($opt_rlog)
 	{
-		dolog_rlog($module, $commitlog, $recipient);
+		$cslist = dolog_rlog($module, $commitlog);
 	}
 	else
 	{
-		dolog_commitlog($module, $commitlog, $recipient);
+		$cslist = dolog_commitlog($module, $commitlog);
 	}
+
+	process_cslist($cslist, $module, $recipient);
 }
 
 #
