@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.18  2004/05/30 16:53:14  bernie
+# Match '+++ ' and '--- ' rather than '+++' and '---' to avoid confusion with second order diffs.
+#
 # Revision 2.17  2004/05/23 15:13:01  bernie
 # Collect multiple CCMAIL lines in a log message.
 #
@@ -279,7 +282,7 @@ sub diff2html($)
 		s/([^ ])( +)\t/$1<span style="background-color: #FF0000">$2<\/span>\t/;
 
 		# Colorize Diff
-		if (/^(---|\+\+\+|diff)/)
+		if (/^(--- |\+\+\+ |diff)/)
 		{
 			$out .= "<font color=\"#006600\">$_</font>\n";
 		}
