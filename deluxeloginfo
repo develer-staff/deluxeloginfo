@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.20  2004/06/01 01:10:20  bernie
+# Add (experimental) newsgroups support.
+#
 # Revision 2.19  2004/05/31 19:48:00  bernie
 # Pass 2nd parameter to log_output()
 #
@@ -56,6 +59,7 @@ my $opt_verbose;
 my $opt_logfile = "";
 my $opt_sender = "cvs\@develer.com";
 my $opt_recipient = "";
+my $opt_newsgroups;
 my $opt_outfile = "";
 my $opt_prjtab = "";
 my $opt_rlog;
@@ -74,7 +78,7 @@ my $opt_module = "";
 sub add_to_cc(\$$)
 {
 	my ($cc, $email) = @_;
-	$$cc .= length($$cc) ? ", $email" : "\nCc: $email" if($$cc !~ /$email/);
+	$$cc .= length($$cc) ? ", $email" : "$email" if($$cc !~ /$email/);
 }
 
 # include first file in second file
@@ -160,16 +164,24 @@ sub send_mail(\$\$$$$$)
 		print STDERR "Writing mail to '$opt_outfile'...\n" if $opt_verbose;
 		open (MAIL, ">>$opt_outfile") or die "Couldn't open outfile: $!";
 	}
+	elsif ($opt_newsgroups)
+	{
+		print STDERR "Posting article in $opt_newsgroups...\n" if $opt_verbose;
+		open (MAIL, "|/usr/bin/inews -h") or die "Couldn't exec inews: $!";
+	}
 	else
 	{
 		print STDERR "Sending mail to <$to>...\n" if $opt_verbose;
-		open (MAIL, "|/usr/lib/sendmail -t") or die "Couldn't open sendmail: $!";
+		open (MAIL, "|/usr/lib/sendmail -t") or die "Couldn't exec sendmail: $!";
 	}
 
+	print MAIL "From: $from\n";
+	print MAIL "To: $to\n" if ($to);
+	print MAIL "Cc: $cc\n" if ($cc);
+	print MAIL "Newsgroups: $opt_newsgroups\n" if ($opt_newsgroups);
+	print MAIL "Subject: $subject\n";
+
 	print MAIL <<EOF;
-From: $from
-To: $to$cc
-Subject: $subject
 MIME-Version: 1.0
 Content-Type: multipart/alternative;
   boundary="Boundary-00=_R+zZ+ucfVzM1q7w"
@@ -882,6 +894,7 @@ GetOptions(
 	'keeplogs'	=> \$opt_keeplogs,
 	'sender=s'	=> \$opt_sender,
 	'recipient=s'	=> \$opt_recipient,
+	'newsgroups=s'  => \$opt_newsgroups,
 	'maildomain=s'	=> \$opt_maildomain,
 
 	'module=s'	=> \$opt_module,
@@ -970,28 +983,29 @@ deluxeloginfo - Process CVS commit logs to generate e-mail report with hyperlink
 deluxeloginfo [options] [<file> ...]
 
  Options:
-   --outfile=file    use <file> as output instead of sending mail
-   --sender=addr     specify sender address for CVS logs
-   --maildomain=dom  specify e-mail domain for committers (used for To:)
-   --recipient=addr  force email recipient (disables Cc: recipients too)
-   --by-author       send one mail for each committer (currently only for rlog mode)
+   --outfile=file      use <file> as output instead of sending mail
+   --sender=addr       specify sender address for CVS logs
+   --maildomain=dom    specify e-mail domain for committers (used for To:)
+   --recipient=addr    force email recipient (disables Cc: recipients too)
+   --newsgroups=groups post log to a specified newsgroups (comma separated).
+   --by-author         send one mail for each committer (currently only for rlog mode)
 
-   --module          CVS module to work on
-   --prjtab=file     use <file> as a prjtab file to find CVS repositories
-   --rlog            use cvs rlog output instead of loginfo files
-   --stampdir        directory to store timestamps for cvs rlog dates
-   --keeplogs        keep log files instead of rotating them
+   --module            CVS module to work on
+   --prjtab=file       use <file> as a prjtab file to find CVS repositories
+   --rlog              use cvs rlog output instead of loginfo files
+   --stampdir          directory to store timestamps for cvs rlog dates
+   --keeplogs          keep log files instead of rotating them
 
-   --cvsroot=root    base CVSROOT for use with cvs -d option
-   --cvsprefix=dir   Repository prefix to strip away in logs
-   --cvsurl=url      set URL for ViewCVS viewcvs.cgi (default: none)
-   --bugurl=url      set URL for Bugzilla's show_bug.cgi (default: none)
-   --diff            show diff for commits (requires --cvsroot)
-   --difflimit=n     show up to <n> lines of diff output
+   --cvsroot=root      base CVSROOT for use with cvs -d option
+   --cvsprefix=dir     Repository prefix to strip away in logs
+   --cvsurl=url        set URL for ViewCVS viewcvs.cgi (default: none)
+   --bugurl=url        set URL for Bugzilla's show_bug.cgi (default: none)
+   --diff              show diff for commits (requires --cvsroot)
+   --difflimit=n       show up to <n> lines of diff output
 
-   --verbose         turn on verbose diagnostic output
-   --help            brief help message
-   --man             full documentation
+   --verbose           turn on verbose diagnostic output
+   --help              brief help message
+   --man               full documentation
 
 =head1 USAGE
 
