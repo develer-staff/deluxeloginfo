@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.35  2004/06/27 20:30:12  bernie
+# Simplify and fix loginfo mode.
+#
 # Revision 2.34  2004/06/27 20:10:54  bernie
 # Colorize added/removed files;  Nicer column widths for the file list.
 #
@@ -763,11 +766,9 @@ sub dolog_commitlog($$)
 	my $beforelogmsg = 1;
 	my $directory = "";
 	my $author = "";
-	my $relfile = "";
-	my $r1 = "";
-	my $r2 = "";
 	my $logmessage = "";
 	my $date = "1970/01/01 00:00:00";
+	my @files = ();
 	my $cslist = CSList->new();
 
 	open COMMITLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
@@ -787,22 +788,12 @@ sub dolog_commitlog($$)
 
 			# "directory - New Directory" ?
 			# "directory - Import sources" ?
-			if(/^- /) {
-				#FIXME: $silentcommit = 1 if(/^- New/);
-				next;
-			}
-			my @files = ();
+			next if(/^- /);
+
 			while(/^([^,]+,(?:NONE|[\d\.]+),(?:NONE|[\d\.]+)) ?(.*)/)
 			{
 				push @files, $1;
 				$_ = $2;
-			}
-			foreach my $f (@files)
-			{
-				next if (!length($f));
-				my $file;
-				($file,$r1,$r2) = $f =~ /(.+),(.+),(.+)/;
-				$relfile = "$directory/$file";
 			}
 		}
 		elsif ($beforelogmsg)
@@ -821,15 +812,19 @@ sub dolog_commitlog($$)
 			{
 				while (chomp $logmessage) {}
 
-				# FIXME: relfile ?
 				# FIXME: $r1/$r2 ?
-				# FIXME: $date ?
-				$cslist->add_file($author, $logmessage, "", $relfile, $r1, $date, $r2 eq "NONE");
+
+				foreach my $f (@files)
+				{
+					next if (!length($f));
+					my ($file, $r1, $r2) = $f =~ /(.+),(.+),(.+)/;
+					my $relfile = "$directory/$file";
+					$cslist->add_file($author, $logmessage, "", $relfile, $r1, $date, $r2 eq "NONE");
+				}
 
 				# Restart
+				@files = ();
 				$directory = "";
-				$relfile = "";
-				$r1 = $r2 = "";
 				$logmessage = "";
 				$juststarted = 1;
 				$beforelogmsg = 1;
