@@ -18,6 +18,10 @@
 #
 #
 # $Log$
+# Revision 2.10  2004/01/18 06:35:54  bernie
+# Don't pass '.' to cvs rlog to workaround assertion in cvs 1.11.11;
+# Check for cvs rlog falures and die soon instead of stomping the datestamp file.
+#
 # Revision 2.9  2003/12/11 02:11:28  bernie
 # Add a kludge for added files.
 #
@@ -626,8 +630,8 @@ sub dolog_rlog($$$)
 		$dates .= `date -r $stamp.new`;
 		chomp $dates;
 
-		print STDERR "+ cvs -Qfn -d$cvsroot rlog -N -d$dates .\n" if $opt_verbose;
-		open(RLOG, "-|") || exec 'cvs', '-Qfn', "-d$cvsroot", 'rlog', '-N', "-d$dates", '.';
+		print STDERR "+ cvs -Qfn -d$cvsroot rlog -N -d '$dates' ''\n" if $opt_verbose;
+		open(RLOG, "-|") || exec 'cvs', '-Qfn', "-d$cvsroot", 'rlog', '-N', "-d$dates", '';
 	}
 
 	while(<RLOG>)
@@ -715,6 +719,7 @@ sub dolog_rlog($$$)
 	} # end while(<>)
 
 	close RLOG;
+	die "cvs rlog failed: $!" if $?;
 
 	# Commit date for next log
 	rename "$stamp.new", "$stamp" if ($stamp);
