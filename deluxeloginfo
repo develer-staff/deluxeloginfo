@@ -15,6 +15,9 @@
 #
 #
 # $Log$
+# Revision 2.4  2003/11/27 23:54:14  bernie
+# Tweak text output to look a little better.
+#
 # Revision 2.3  2003/11/26 22:15:59  bernie
 # Handle removed files correctly in --rlog mode.
 #
@@ -332,7 +335,7 @@ sub format_output($$$$$)
 	$fmtText .= " (on branch $tagname)" if ($tagname ne "HEAD");
 	$fmtText .= ":\n";
 
-	$fmtText .= "$log\n\n";
+	$fmtText .= "$log\n";
 	bugzillate($log);
 	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><pre>$log</pre></td></tr>\n";
 
@@ -374,9 +377,14 @@ sub format_output($$$$$)
 		$fmtHtml .= "<tr><td>$statelink</td><td>$rev</td><td>$file</td></tr>\n";
 	}
 
+	# Put some spacing between the file list and the diff
+	$fmtText .= "\n";
+
 	if (length($diff))
 	{
 		$fmtText .= $diff;
+		$fmtText .= "\n";
+
 		$fmtHtml .= "<tr><td colspan='3' bgcolor='#ffffff'>" . diff2html($diff) . "</td></tr>";
 	}
 
