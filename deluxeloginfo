@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.7  2003/12/10 11:02:05  bernie
+# Mark bad whitespace.
+#
 # Revision 2.6  2003/12/08 06:35:17  bernie
 # Hopefully fix leading slash issue in ViewCVS paths.
 #
@@ -255,10 +258,21 @@ sub diff2html($)
 
 	foreach (split /\n/, shift)
 	{
+		# Remove trailing \n
 		chomp;
+
+		# Replace HTML reserved chars with entities
 		s/&/&amp;/g;
 		s/</&lt;/g;
 		s/>/&gt;/g;
+
+		# Mark leading whitespace at EOL
+		s/([^ ])(\s+)$/$1<span style="background-color: #FF0000">$2<\/span>/;
+
+		# Mark hidden whitespace before TABs
+		s/([^ ])( +)\t/$1<span style="background-color: #FF0000">$2<\/span>\t/;
+
+		# Colorize Diff
 		if (/^(---|\+\+\+|diff)/)
 		{
 			$out .= "<font color=\"#006600\">$_</font>\n";
