@@ -18,6 +18,10 @@
 #
 #
 # $Log$
+# Revision 2.8  2003/12/10 11:29:11  bernie
+# Show diff for added files.
+# Handle corner-case for files with very long lines.
+#
 # Revision 2.7  2003/12/10 11:02:05  bernie
 # Mark bad whitespace.
 #
@@ -222,10 +226,13 @@ sub dodiff($$$$)
 	my $copts = "";
 
 	# Avoid diffs for files added or removed from CVS
-	return "" if (($r1 eq "NONE") or ($r2 eq "NONE"));
+	#return "" if (($r1 eq "NONE") or ($r2 eq "NONE"));
 
-	# Regex to match source files
-	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)';
+	# Avoid diffs for files removed from CVS
+	return "" if ($r2 eq "NONE");
+
+	# Regex to match source files (doesn't work with cvs rdiff)
+	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)$';
 	#$copts = "dpbB" if ($file =~ /$srcfile/);
 
 	my $cvsroot = $opt_cvsroot;
@@ -237,7 +244,12 @@ sub dodiff($$$$)
 	while(<CVS>)
 	{
 		next if /^Index:/;
-		if ($cnt++ > $opt_difflimit and $opt_difflimit)
+		$cnt++;
+
+		# Truncate diff when it exceeds <difflimit>
+		# or if the size grows over <difflimit> full lines of 80 characters.
+		if ($opt_difflimit and
+			(($cnt > $opt_difflimit) or (length($diff) > $opt_difflimit * 80)))
 		{
 			# Limit exceeded: discard further input and exit
 			$diff .= "*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***\n";
