@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.60  2004/12/26 22:36:39  bernie
+# Reorder options parsing to match help; Kill doc for --newsgroups and fix doc for --recipient.
+#
 # Revision 2.59  2004/12/26 22:24:54  bernie
 # Document options by category.
 #
@@ -106,6 +109,8 @@ my $opt_maildomain = "";
 my $opt_cvsurl = "";
 my $opt_bugurl = "";
 my $opt_diff;
+my $opt_html = 1;
+my $opt_ascii = 1;
 my $opt_difflimit = 0;
 my $opt_cvsroot = "";
 my $opt_cvsprefix = "";
@@ -1197,27 +1202,28 @@ $ENV{"CVS_RSH"} = "ssh";
 
 GetOptions(
 	'outfile=s'	=> \$opt_outfile,
-	'keeplogs'	=> \$opt_keeplogs,
 	'sender=s'	=> \$opt_sender,
-	'recipient=s'	=> \$opt_recipient,
 	'maildomain=s'	=> \$opt_maildomain,
+	'recipient=s'	=> \$opt_recipient,
 
-	'module=s'	=> \$opt_module,
-	'prjtab=s'	=> \$opt_prjtab,
-	'rlog'		=> \$opt_rlog,
-	'stampdir=s'	=> \$opt_stampdir,
 	'by-author'	=> \$opt_byauthor,
-
-	'cvsroot=s'	=> \$opt_cvsroot,
-	'cvsprefix=s'	=> \$opt_cvsprefix,
-	'cvsurl=s'	=> \$opt_cvsurl,
-	'bugurl=s'	=> \$opt_bugurl,
 	'diff'		=> \$opt_diff,
 	'difflimit=n'	=> \$opt_difflimit,
 	'index:n'	=> \$opt_index,
 	'index-lines:n'	=> \$opt_indexlines,
 
-	'verbose'	=> \$opt_verbose,
+	'module=s'	=> \$opt_module,
+	'prjtab=s'	=> \$opt_prjtab,
+	'rlog'		=> \$opt_rlog,
+	'stampdir=s'	=> \$opt_stampdir,
+	'keeplogs'	=> \$opt_keeplogs,
+	'cvsroot=s'	=> \$opt_cvsroot,
+	'cvsprefix=s'	=> \$opt_cvsprefix,
+
+	'cvsurl=s'	=> \$opt_cvsurl,
+	'bugurl=s'	=> \$opt_bugurl,
+
+	'verbose+'	=> \$opt_verbose,
 	'help'		=> sub { pod2usage(1); },
 	'man'		=> sub { pod2usage(-exitstatus => 0, -verbose => 2); },
 ) or pod2usage(2);
@@ -1294,8 +1300,8 @@ deluxeloginfo [OPTION]... [FILE]...
    --outfile=FILE      use FILE as output instead of sending mail
    --sender=ADDR       sender address for CVS logs
    --maildomain=DOMAIN mail domain for committers (used for To:)
-   --recipient=ADDR    mail recipient or newsgroups (news:foo.bar)
-   --newsgroups=GROUPS post log to a specified newsgroups (comma separated).
+   --recipient=ADDR    comma-separated list of mail recipients or newsgroups
+                       (devtools@lists.develer.com or news:comp.lang.c)
 
  Options for output format:
    --by-author         send one mail for each committer
@@ -1320,7 +1326,9 @@ deluxeloginfo [OPTION]... [FILE]...
    --cvsurl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
    --bugurl=URL        set URL for Bugzilla's show_bug.cgi (default: none)
 
+ Miscellaneous options:
    --verbose           turn on verbose diagnostic output
+                       (specify twice to increase verbosity).
    --help              brief help message
    --man               full documentation
 
@@ -1347,7 +1355,7 @@ by setting up a project description file like this:
    gcc		:pserver:bernie@gcc.gnu.org:/cvs/gcc	news:comp.lang.c++,gnu.misc.discuss
 
 Multiple recipients can be specified separated by commas.
-Prefix the address with "news:" to post to newsgroups.
+Prefix the address list with "news:" to post to newsgroups.
 
 =head1 AUTHOR
 
