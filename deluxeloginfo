@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.16  2004/05/22 20:32:37  bernie
+# CVS-SILENT: Trim changelog.
+#
 # Revision 2.15  2004/05/22 20:28:15  bernie
 # Fold handling of CVSSILENT and CCMAIL into formtat_output().
 #
@@ -29,47 +32,6 @@
 #
 # Revision 2.12  2004/04/13 05:53:17  bernie
 # Fix for CVS problems parsing CEST time zone.
-#
-# Revision 2.11  2004/01/18 07:19:23  bernie
-# Print verbose output when not sending empty mails.
-#
-# Revision 2.10  2004/01/18 06:35:54  bernie
-# Don't pass '.' to cvs rlog to workaround assertion in cvs 1.11.11;
-# Check for cvs rlog falures and die soon instead of stomping the datestamp file.
-#
-# Revision 2.9  2003/12/11 02:11:28  bernie
-# Add a kludge for added files.
-#
-# Revision 2.8  2003/12/10 11:29:11  bernie
-# Show diff for added files.
-# Handle corner-case for files with very long lines.
-#
-# Revision 2.7  2003/12/10 11:02:05  bernie
-# Mark bad whitespace.
-#
-# Revision 2.6  2003/12/08 06:35:17  bernie
-# Hopefully fix leading slash issue in ViewCVS paths.
-#
-# Revision 2.5  2003/12/05 00:07:54  bernie
-# Avoid double slashes in ViewCVS URL generation.
-#
-# Revision 2.4  2003/11/27 23:54:14  bernie
-# Tweak text output to look a little better.
-#
-# Revision 2.3  2003/11/26 22:15:59  bernie
-# Handle removed files correctly in --rlog mode.
-#
-# Revision 2.2  2003/11/26 21:46:41  bernie
-# Properly add MIME end boundary.
-#
-# Revision 2.1  2003/11/25 23:39:37  bernie
-# Add Deluxe Loginfo home page.
-#
-# Revision 2.0  2003/11/25 23:35:16  bernie
-# Bump revision to 2.0
-#
-# Revision 1.22  2003/11/16 07:32:05  bernie
-# Safer stamp handling
 #
 
 use strict;
