@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.26  2004/06/27 08:27:55  bernie
+# Mark enscript code as being unused.
+#
 # Revision 2.25  2004/06/27 08:25:16  bernie
 # Ubiquitous usage of log_output().
 #
@@ -371,6 +374,7 @@ sub diff2html($)
 	}
 	return $out;
 
+### BEGIN: EXPERIMENTAL/UNUSED CODE ###
 	# Fork
 	my $pid = open (ENSCRIPT_OUTPUT, "-|");
 	die ("can't fork") unless defined($pid);
@@ -391,6 +395,7 @@ sub diff2html($)
 		}
 		return $out;
 	}
+### END: EXPERIMENTAL/UNUSED CODE ###
 }
 
 #
