@@ -22,6 +22,9 @@
 #
 #
 # $Log$
+# Revision 2.41  2004/07/13 23:12:28  bernie
+# Omit author name before logs with --by-author.
+#
 # Revision 2.40  2004/07/13 21:06:25  bernie
 # Add --index and --indexlines
 #
@@ -666,14 +669,24 @@ sub format_output($$$\$)
 
 	$summary .= "<li><a href='#cs$csnum'>CS$csnum</a> - $incipit</li>\n";
 
+	$fmtHtml .= "<a name='cs$csnum'></a>\n";
 	$fmtHtml .= "<table border='0' cellspacing='0' cellpadding='5' width='100%' bgcolor='#eeeeee'>\n";
-	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><font color='#bb2222'><strong><a name='cs$csnum'>$author</a></strong></font>";
-	$fmtHtml .= " <font color='#225522'><em>(on branch $tagname)</em></font>" if ($tagname ne "HEAD");
-	$fmtHtml .= "</td></tr>\n";
-
-	$fmtText .= "$author";
-	$fmtText .= " (on branch $tagname)" if ($tagname ne "HEAD");
-	$fmtText .= ":\n";
+	unless ($opt_byauthor and $tagname eq "HEAD")
+	{
+		$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'>\n";
+		unless ($opt_byauthor)
+		{
+			$fmtHtml .= " <font color='#bb2222'><strong>$author</strong></font>\n";
+			$fmtText .= " *$author*";
+		}
+		unless ($tagname eq "HEAD")
+		{
+			$fmtHtml .= " <font color='#225522'><em>(on branch $tagname)</em></font>\n";
+			$fmtText .= " (on branch $tagname)";
+		}
+		$fmtHtml .= "</td></tr>\n";
+		$fmtText .= ":\n";
+	}
 
 	$fmtText .= "$log\n";
 	bugzillate($log);
