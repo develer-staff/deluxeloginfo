@@ -16,11 +16,11 @@
 #   by coolo@kde.org and daniel.naber@t-online.de
 #   Many improvements and fixes by dirk@kde.org
 #
-# TODO:
-#	- show branches in --rlog mode
-#
 #
 # $Log$
+# Revision 2.52  2004/10/07 00:03:35  bernie
+# Cleanup and fix a bug with first revisions of branches.
+#
 # Revision 2.51  2004/10/06 23:08:08  bernie
 # Scary support for branch names in --rlog mode.
 #
@@ -792,23 +792,20 @@ sub process_cslist($$$)
 
 #
 # Helper for dolog_rlog().
-# Parse a CVS revision number and return a list of two
-# revisions: the ancestor and the current revision.
+# Parse a CVS revision number and return the best guess for its ancestor.
 #
 sub guess_ancestor($)
 {
 	my ($rev) = @_;
-	my ($r1, $r2);
+	my $old;
 
 	# Parse revision numbers such as 1.34 or 1.7.2.42
 	# Assign the radix (i.e.: 1.7.2) and the minor (i.e.: 42)
 	if (my ($radix, $minor) = ($rev =~ /^([\d.]+)\.(\d+)$/))
 	{
-		# The new revision is actually what we already have
-		$r2 = $rev;
-
 		# Guess the ancestor: usually one less than the new revision
-		$r1 = $radix . "." . --$minor;
+		--$minor;
+		$old = "$radix.$minor";
 
 		# If the ancestor's minor revision was 0, perhaps we
 		# were working with the first revision of a branch. 
@@ -819,15 +816,18 @@ sub guess_ancestor($)
 		#
 		# The correct ancestor in this example would be 1.9.
 		#
-		($minor <= 0) and $r1 = ($radix =~ /^([\d.]+)\.\d+\.\d+$/);
+		if ($minor <= 0)
+		{
+			($old) = ($radix =~ /^([\d.]+)\.\d+$/);
+		}
 	}
 
-	unless (defined($r1))
+	unless (defined($old))
 	{
 		print STDERR "*** Warning: can't parse revision '$rev'\n";
 	}
 
-	return ($r1, $r2);
+	return $old;
 }
 
 #
@@ -838,7 +838,7 @@ sub dolog_commitlog($$)
 	my ($module, $commitlog) = @_;
 
 	# initialize with the default values
-	my $tagname = "HEAD";
+	my $tagname = "";
 	my $juststarted = 1;
 	my $beforelogmsg = 1;
 	my $directory = "";
@@ -903,7 +903,7 @@ sub dolog_commitlog($$)
 				$logmessage = "";
 				$juststarted = 1;
 				$beforelogmsg = 1;
-				$tagname = "HEAD";
+				$tagname = "";
 				$date = "1970/01/01 00:00:00";
 			}
 			else
@@ -967,7 +967,7 @@ sub dolog_rlog($$)
 
 	# initialize vars with the default values
 	my $file = "";
-	my $rev = "";
+	my $r2 = "";
 	my $log = "";
 
 	# A nested data structure to hold all collected log data
@@ -1038,7 +1038,7 @@ sub dolog_rlog($$)
 					# Extract the branch name and its revision
 					if (my ($tag, $r) = /^\t(.*): (.*)$/)
 					{
-						my @rev = split('.', $r);
+						my @rev = split(/\./, $r);
 
 						# Revisions such as "1.27" are obviously not branches
 						next if @rev <= 2;
@@ -1059,6 +1059,7 @@ sub dolog_rlog($$)
 					}
 					else
 					{
+print STDERR "rev_tags = " . join(',',%rev_tags) . "\n";
 						# bail out on end of tag list,
 						# reprocessing last input as a valid keyword.
 						redo LOOP;
@@ -1084,7 +1085,8 @@ sub dolog_rlog($$)
 			}
 			elsif (/^revision (.*)/)
 			{
-				$rev = $1;
+				# This is the new revision
+				$r2 = $1;
 			}
 			elsif (/^===/)
 			{
@@ -1097,34 +1099,34 @@ sub dolog_rlog($$)
 			if (/^---/ or /^===/)
 			{
 				# Compute old/new revision numbers
-				my ($r1, $r2) = guess_ancestor($rev);
+				my $r1;
+
+				$r1 = guess_ancestor($r2);
+print STDERR "old, new = $r1 $r2\n";
 
 				if ($removed)
 				{
 					undef $r2;
 				}
-				# Added?
-				elsif ($rev =~ /1\.1$/)
+				# New file?
+				elsif ($r2 =~ /1\.1$/)
 				{
 					undef $r1;
 				}
 
 				# Try to match the file revision with a branch tag
-				my $tagname;
-				BRANCHTAG:
+				# Make sure we have a branch revision number
+				# which is composed by at least 4 components.
+				# Also throw away the minor revision which we don't
+				# need to match the branch number. 
+				#
+				my ($tagname, $r);
+				if (($r) = /^((?:\d+\.){3,})\.\d+$/)
 				{
-					my @revs = split('.', $r2);
-
-					# check whether we have a branch revision number
-					last BRANCHTAG if @revs < 4;
-
-					# Kill the minor revision number
-					pop @revs;
-
-					# Rebuild the branch revision (e.g.: 1.23.6)
-					my $r = join('.', @revs);
-
 					$tagname = $rev_tags{$r} || "UNKNOWN";
+print STDERR "r = $r\n";
+print STDERR "Huston, we have a branch\n";
+print STDERR "tagname = $tagname\n";
 				}
 
 				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2, $tagname, $date);
