@@ -21,6 +21,10 @@
 #
 #
 # $Log$
+# Revision 2.47  2004/07/20 21:50:56  bernie
+# htmlize raw log lines for the incipit to avoid escaping <br> tags
+# we inserted between the lines.
+#
 # Revision 2.46  2004/07/15 22:26:30  bernie
 # htmlize(): REALLY fix it this time... and reindent for readability.
 #
@@ -632,6 +636,7 @@ sub format_output($$$\$)
 		if ($incipit_lines < $opt_indexlines)
 		{
 			$incipit .= '<br />' if $incipit;
+			htmlize $_;
 			$incipit .= $_;
 		}
 		elsif ($incipit_lines == $opt_indexlines and $opt_indexlines != 0)
@@ -641,7 +646,6 @@ sub format_output($$$\$)
 		$incipit_lines++;
 	}
 
-	htmlize $incipit;
 	$summary .= "<li><a href='#cs$csnum'>CS$csnum</a> - $incipit</li>\n";
 
 	$fmtHtml .= "<a name='cs$csnum'></a>\n";
