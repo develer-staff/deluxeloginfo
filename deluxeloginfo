@@ -21,6 +21,9 @@
 #
 #
 # $Log$
+# Revision 2.46  2004/07/15 22:26:30  bernie
+# htmlize(): REALLY fix it this time... and reindent for readability.
+#
 # Revision 2.45  2004/07/15 22:24:45  bernie
 # htmlize(): Fix it to escape the argument and not a copy.
 #
@@ -515,7 +518,12 @@ sub dodiff($$$$)
 #
 sub htmlize
 {
-	foreach @_ { s/&/&amp;/g; s/</&lt;/g; s/>/&gt;/g; }
+	foreach (@_)
+	{
+		s/&/&amp;/g;
+		s/</&lt;/g;
+		s/>/&gt;/g;
+	}
 }
 
 sub diff2html($)
