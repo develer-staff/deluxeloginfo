@@ -17,7 +17,14 @@
 #   Many improvements and fixes by dirk@kde.org
 #
 #
+# TODO: Sort headers before C/C++ sources in changesets
+# TODO: Coalesce diffs of same file in same changeset with same comment
+#
+#
 # $Log$
+# Revision 2.65  2005/01/23 02:31:55  bernie
+# Add TODO items.
+#
 # Revision 2.64  2004/12/30 03:01:40  bernie
 # --encoding: New option; Strip CVS log.
 #
