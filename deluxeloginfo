@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.17  2004/05/23 15:13:01  bernie
+# Collect multiple CCMAIL lines in a log message.
+#
 # Revision 2.16  2004/05/22 20:32:37  bernie
 # CVS-SILENT: Trim changelog.
 #
@@ -346,7 +349,7 @@ sub format_output($$$$$\$)
 	# Do nothing for empty file lists
 	if (length($text) == 0)
 	{
-		log_output("ERROR: Skipping empty log entry by $author", $log);
+		log_output("Skipping empty log entry");
 		return ("", "");
 	}
 
@@ -356,9 +359,13 @@ sub format_output($$$$$\$)
 		log_output("Ignoring commit by $author", $log);
 		return ("", "");
 	}
-	if ($log =~ /^CCMAIL:\s*(.*)\s*$/)
+
+	foreach (split '\n', $log)
 	{
-		add_to_cc($ccrecipients, $1)
+		if (/^CCMAIL:\s*(.*)\s*$/)
+		{
+			add_to_cc($ccrecipients, $1);
+		}
 	}
 
 	# sort the list of affected files to make it look cooler
