@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.24  2004/06/27 08:17:29  bernie
+# Introduce OO syntax for file revisions.
+#
 # Revision 2.23  2004/06/24 22:26:14  bernie
 # Use iso-8859-1 encoding for better compatibility with CVS logs edited with Windows frontends.
 #
@@ -81,6 +84,22 @@ my $opt_difflimit = 0;
 my $opt_cvsroot = "";
 my $opt_cvsprefix = "";
 my $opt_module = "";
+
+#
+# Hold a file-revision pair
+#
+package FileRev;
+
+sub new($$)
+{
+	shift;
+	bless { file => shift, rev => shift, removed => shift };
+}
+
+#
+# Main program
+#
+package main;
 
 
 sub add_to_cc(\$$)
@@ -377,7 +396,7 @@ sub log_output($$)
 	{
 		my ($msg, $text) = @_;
 		print STDERR "  $msg:\n";
-		foreach (split '\n',$text) { print "    $_\n"; }
+		foreach (split '\n', $text) { print "    $_\n"; }
 	}
 }
 
@@ -724,7 +743,9 @@ sub dolog_rlog($$$)
 			if (/^---/ or /^===/)
 			{
 				$log = "*** Empty log message! ***" if !$log;
-				
+
+				my $filerev = FileRev->new($file, $rev, $removed);
+
 				if (my $l = $author_logs{$author})
 				{
 					if (my $f = ${$l}{$log})
@@ -732,7 +753,7 @@ sub dolog_rlog($$$)
 						print STDERR "  Append new file for $author on $file rev $rev:\n" if ($opt_verbose);
 
 						# Append new file to existing log message
-						push @$f, [ $file, $rev, $removed ];
+						push @$f, $filerev;
 					}
 					else
 					{
@@ -743,7 +764,7 @@ sub dolog_rlog($$$)
 						}
 
 						# Create new log message 
-						${$l}{$log} = [ [ $file, $rev, $removed ] ];
+						${$l}{$log} = [ $filerev ];
 					}
 				}
 				else
@@ -755,7 +776,7 @@ sub dolog_rlog($$$)
 					}
 
 					# Create new log message and append file/rev pair to it
-					$author_logs{$author} = { $log => [ [ $file, $rev, $removed ] ] };
+					$author_logs{$author} = { $log => [ $filerev ] };
 				}
 
 				$log = "";
@@ -807,14 +828,14 @@ sub dolog_rlog($$$)
 			#$dumper->dumpValue($filelist);
 			#print STDERR "**** END filelist ****\n";
 
-			foreach my $fileinfo (@$filelist)
+			foreach my $filerev (@$filelist)
 			{
 				#DEBUG
-				#print STDERR "**** BEGIN fileinfo ****\n";
-				#$dumper->dumpValue($fileinfo);
-				#print STDERR "**** END fileinfo ****\n";
+				#print STDERR "**** BEGIN filerev ****\n";
+				#$dumper->dumpValue($filerev);
+				#print STDERR "**** END filerev ****\n";
 
-				my ($filename, $rev, $removed) = @$fileinfo;
+				my ($filename, $rev, $removed) = ( $$filerev{file}, $$filerev{rev}, $$filerev{removed} );
 
 				# Prune ,v suffix from filename
 				$filename =~ s|,v$||;
