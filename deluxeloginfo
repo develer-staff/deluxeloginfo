@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.36  2004/06/27 21:55:38  bernie
+# Put format_output() on diet; Fix branch handling for loginfo mode (rlog mode is still waiting for a good hack).
+#
 # Revision 2.35  2004/06/27 20:30:12  bernie
 # Simplify and fix loginfo mode.
 #
@@ -104,13 +107,20 @@ sub log_output
 #
 package FileRev;
 
-sub new($$$$$$)
+sub new($$$$$$$)
 {
 	#
 	# Collect arguments and create instance
 	#
-	my ($class, $cvsdir, $filename, $rev, $date, $removed) = @_;
-	my $self = { date => $date };
+	my $class = shift;
+	my $cvsdir = shift;
+	my $filename = shift;
+	my $self = {
+		r1 => shift,
+		r2 => shift,
+		tag => shift,
+		date => shift
+	};
 	bless $self, $class;
 
 	#
@@ -138,31 +148,6 @@ sub new($$$$$$)
 	# Extract old/new revisions
 	#
 
-	# Get major/minor revision numbers
-	my ($r1, $r2);
-
-	# Parse revision numbers such as 1.34 or 1.1.1.23
-	if ($rev =~ /^(.*)\.([0-9]+)$/)
-	{
-		# Guess previous revision
-		$self->{r1} = $1 . "." . ($2 - 1);
-		$self->{r2} = $rev;
-	}
-	else
-	{
-		print STDERR "*** Warning: can't parse revision '$rev'\n";
-	}
-
-	if ($removed)
-	{
-		undef $self->{r2};
-	}
-	# Added?
-	elsif ($rev =~ /1\.1$/)
-	{
-		undef $self->{r1};
-	}
-
 	return $self;
 }
 
@@ -174,6 +159,9 @@ sub r1 { return shift->{r1} || "NONE"; }
 
 # Return new file revision
 sub r2 { return shift->{r2} || "NONE"; }
+
+# Return the branch tag for the file
+sub tag { return shift->{tag} || "HEAD"; }
 
 # Return commit timestamp
 sub date { return shift->{date}; }
@@ -192,6 +180,7 @@ sub new($$$)
 		author => shift,
 		log => shift,
 		files => [],
+		tag => "HEAD",
 		date => "1970/01/01 00:00:00"
 	}, $class;
 }
@@ -204,7 +193,10 @@ sub add
 	push @{$self->{files}}, $filerev;
 
 	# Collect date of newest change
-	$self->{date} = $filerev->{date} if ($self->{date} lt $filerev->{date} )
+	$self->{date} = $filerev->{date} if ($self->{date} lt $filerev->{date} );
+
+	# Collect tag - FIXME: only one tag
+	$self->{tag} = $filerev->tag;
 }
 
 # Retrieve the author name
@@ -213,7 +205,10 @@ sub author { return shift->{author}; }
 # Retrieve the log message
 sub log { return shift->{log}; }
 
-# Return an array of FileRev objects
+# Return the branch tag for the file
+sub tag { return shift->{tag} || "HEAD"; }
+
+# Return an array of FileRev objects - TODO: sort by file name?
 sub files { return @{shift->{files}}; }
 
 
@@ -265,9 +260,10 @@ sub add_filerev
 #
 sub add_file
 {
-	my ($self, $author, $log, $cvsdir, $file, $rev, $date, $removed) = @_;
-
-	my $filerev = FileRev->new($cvsdir, $file, $rev, $date, $removed);
+	my $self = shift;
+	my $author = shift;
+	my $log = shift;
+	my $filerev = FileRev->new(@_);
 	$self->add_filerev($author, $log, $filerev);
 }
 
@@ -587,18 +583,22 @@ sub diff2html($)
 ### END: EXPERIMENTAL/UNUSED CODE ###
 }
 
-sub format_output($$$$$\$)
+sub format_output($$\$)
 {
-	my ($author, $text, $log, $module, $tagname, $ccrecipients) = @_;
+	my ($changeset, $module, $ccrecipients) = @_;
 	my ($fmtText, $fmtHtml, $cc);
 	my $diff = "";
+	my @files = $changeset->files;
+	my $author = $changeset->author;
+	my $log = $changeset->log;
+	my $tagname = $changeset->tag;
 
-	log_output("Processing commit by $author", $text);
+	log_output("Processing ChangeSet by $author of " . scalar @files . " files.");
 
 	# Do nothing for empty file lists
-	if (length($text) == 0)
+	if (@files == 0)
 	{
-		log_output("Skipping empty log entry");
+		log_output("Skipping empty ChangeSet");
 		return ("", "");
 	}
 
@@ -617,9 +617,6 @@ sub format_output($$$$$\$)
 		}
 	}
 
-	# sort the list of affected files to make it look cooler
-	my @outlist = sort (split /^/, $text);
-
 	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><font color='#bb2222'><strong>$author</strong></font>";
 	$fmtHtml .= " <font color='#225522'><em>(on branch $tagname)</em></font>" if ($tagname ne "HEAD");
 	$fmtHtml .= "</td></tr>\n";
@@ -632,10 +629,11 @@ sub format_output($$$$$\$)
 	bugzillate($log);
 	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><pre>$log</pre></td></tr>\n";
 
-	foreach my $o (@outlist)
+	foreach my $filerev (@files)
 	{
-		chop $o;
-		my ($file, $r1, $r2) = split/\t/, $o;
+		my $file = $filerev->filename();
+		my $r1 = $filerev->r1();
+		my $r2 = $filerev->r2();
 
 		# Guess CVS operation from revisions pair
 		my $state = 'M';
@@ -706,32 +704,12 @@ sub process_cslist($$$)
 	my $fmtText = "";
 	my $fmtHtml = "";
 	my $ccrecipients = "";
-	my $tagname = "HEAD"; # FIXME
 
 	foreach my $author ($cslist->authors)
 	{
 		foreach my $changeset ($cslist->changesets($author))
 		{
-			my $outtext = "";
-
-			#DEBUG
-			#use Dumpvalue;
-			#my $dumper = new Dumpvalue;
-			#print STDERR "****BEGIN ChangeSet ****\n";
-			#$dumper->dumpValue($changeset);
-			#print STDERR "**** END ChangeSet ****\n";
-
-			foreach my $frev ($changeset->files)
-			{
-				#DEBUG
-				#print STDERR "**** BEGIN FileRev ****\n";
-				#$dumper->dumpValue($frev);
-				#print STDERR "**** END FileRev ****\n";
-
-				$outtext .= $frev->filename() . "\t" . $frev->r1() . "\t" . $frev->r2() . "\n";
-			}
-
-			my @out = format_output($author, $outtext, $changeset->{log}, $module, $tagname, $ccrecipients);
+			my @out = format_output($changeset, $module, $ccrecipients);
 			$fmtText .= $out[0];
 			$fmtHtml .= $out[1];
 		}
@@ -819,7 +797,7 @@ sub dolog_commitlog($$)
 					next if (!length($f));
 					my ($file, $r1, $r2) = $f =~ /(.+),(.+),(.+)/;
 					my $relfile = "$directory/$file";
-					$cslist->add_file($author, $logmessage, "", $relfile, $r1, $date, $r2 eq "NONE");
+					$cslist->add_file($author, $logmessage, "", $relfile, $r1, $r2, $tagname, $date);
 				}
 
 				# Restart
@@ -828,6 +806,7 @@ sub dolog_commitlog($$)
 				$logmessage = "";
 				$juststarted = 1;
 				$beforelogmsg = 1;
+				$tagname = "HEAD";
 				$date = "1970/01/01 00:00:00";
 			}
 			else
@@ -897,7 +876,7 @@ sub dolog_rlog($$)
 	# A nested data structure to hold all collected log data
 	my $cslist = CSList->new;
 
-	my $tagname = "HEAD"; # FIXME: unused
+	my $tagname = "HEAD"; # TODO: unused
 	my $directory = "";
 	my $date = "";
 	my $author = "";
@@ -936,7 +915,7 @@ sub dolog_rlog($$)
 		$dates .= `date --rfc-2822 -r $stamp.new`;
 		chomp $dates;
 
-		print STDERR "+ cvs -Qfn -d$cvsroot rlog -N -d '$dates' ''\n" if $opt_verbose;
+		print STDERR "+ cvs -Qfn -d$cvsroot rlog -d '$dates' ''\n" if $opt_verbose;
 		open(RLOG, "-|") || exec 'cvs', '-Qfn', "-d$cvsroot", 'rlog', '-N', "-d$dates", '';
 	}
 
@@ -957,17 +936,21 @@ sub dolog_rlog($$)
 		}
 		elsif ($state == 2) # parse revision log
 		{
-			if (/^revision (.*)/)
-			{
-				$rev = $1;
-			}
 			# EXAMPLE: date: 2003/11/26 19:46:57;  author: codewiz;  state: dead;  lines: +0 -0
-			elsif (/^date: *([^;]*); *author: *([^;]*); *state:([^;]*);/)
+			if (/^date: *([^;]*); *author: *([^;]*); *state:([^;]*);/)
 			{
 				$date = $1;
 				$author = $2;
 				$removed = ($3 =~ /dead/) ? 1 : 0;
 				$state = 3;
+			}
+			elsif (/^revision (.*)/)
+			{
+				$rev = $1;
+			}
+			elsif (/^symbolic names:/)
+			{
+				# TODO: parse branches/revisions pairs
 			}
 			elsif (/^===/)
 			{
@@ -976,9 +959,36 @@ sub dolog_rlog($$)
 		}
 		elsif ($state == 3) # parse log message
 		{
+			# End of log message?
 			if (/^---/ or /^===/)
 			{
-				$cslist->add_file($author, $log, $cvsdir, $file, $rev, $date, $removed);
+				# Compute old/new revision numbers
+				my ($r1, $r2);
+
+				# Parse revision numbers such as 1.34 or 1.1.1.23
+				if ($rev =~ /^(.*)\.([0-9]+)$/)
+				{
+					# Guess previous revision
+					$r1 = $1 . "." . ($2 - 1);
+					$r2 = $rev;
+				}
+				else
+				{
+					print STDERR "*** Warning: can't parse revision '$rev'\n";
+				}
+
+				if ($removed)
+				{
+					undef $r2;
+				}
+				# Added?
+				elsif ($rev =~ /1\.1$/)
+				{
+					undef $r1;
+				}
+
+
+				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2, $tagname, $date);
 
 				$log = "";
 				$state = 2;
