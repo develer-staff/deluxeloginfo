@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.54  2004/11/24 00:12:56  bernie
+# Fix documentation style to match GNU standards.
+#
 # Revision 2.53  2004/10/07 01:00:48  bernie
 # Don't pass -N to cvs rlog in order to get branch tags; Fix regex for branch numbers.
 #
@@ -1278,31 +1281,31 @@ deluxeloginfo - Process CVS commit logs to generate e-mail report with hyperlink
 
 =head1 SYNOPSIS
 
-deluxeloginfo [options] [<file> ...]
+deluxeloginfo [OPTION]... [FILE]...
 
  Options:
-   --outfile=file      use <file> as output instead of sending mail
-   --sender=addr       specify sender address for CVS logs
-   --maildomain=dom    specify e-mail domain for committers (used for To:)
-   --recipient=addr    specify e-mail recipient or newsgroups (news:foo.bar)
+   --outfile=FILE      use FILE as output instead of sending mail
+   --sender=addr       sender address for CVS logs
+   --maildomain=dom    mail domain for committers (used for To:)
+   --recipient=ADDR    mail recipient or newsgroups (news:foo.bar)
    --newsgroups=groups post log to a specified newsgroups (comma separated).
    --by-author         send one mail for each committer
 
-   --module            CVS module to work on
-   --prjtab=file       use <file> as a prjtab file to find CVS repositories
+   --module=NAME       CVS module to work on
+   --prjtab=FILE       use FILE as a prjtab file to find CVS repositories
    --rlog              use cvs rlog output instead of loginfo files
    --stampdir          where to store timestamps for cvs rlog
                        (default: /var/state/loginfo)
    --keeplogs          keep log files instead of rotating them
 
-   --cvsroot=root      base CVSROOT for use with cvs -d option
-   --cvsprefix=dir     Repository prefix to strip away in logs
-   --cvsurl=url        set URL for ViewCVS viewcvs.cgi (default: none)
-   --bugurl=url        set URL for Bugzilla's show_bug.cgi (default: none)
+   --cvsroot=ROOT      base CVSROOT for use with cvs -d option
+   --cvsprefix=DIR     Repository prefix to strip away in logs
+   --cvsurl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
+   --bugurl=URL        set URL for Bugzilla's show_bug.cgi (default: none)
    --diff              show diff for commits (requires --cvsroot)
-   --difflimit=n       show up to <n> lines of diff output
-   --index[=n]         output a summary of ChangeSets.  If <n> is specified,
-                       the index is printed only when it contains at least <n>
+   --difflimit=N       show up to N lines of diff output
+   --index[=N]         output a summary of ChangeSets.  If N is specified,
+                       the index is printed only when it contains at least N
 		       ChangeSets. Set to 0 to always print the index
    --index-lines=n     Number of log lines in an index entry (default: 1)
 
