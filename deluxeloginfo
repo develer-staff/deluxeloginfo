@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.15  2004/05/22 20:28:15  bernie
+# Fold handling of CVSSILENT and CCMAIL into formtat_output().
+#
 # Revision 2.14  2004/05/14 19:19:16  bernie
 # Fix spelling error.
 #
@@ -370,29 +373,40 @@ sub log_output($$)
 	}
 }
 
-sub format_output($$$$$)
+sub format_output($$$$$\$)
 {
-	my ($committer, $text, $log, $module, $tagname) = @_;
-	my ($fmtText, $fmtHtml);
+	my ($author, $text, $log, $module, $tagname, $ccrecipients) = @_;
+	my ($fmtText, $fmtHtml, $cc);
 	my $diff = "";
 
-	log_output("Processing commit by $committer", $text);
+	log_output("Processing commit by $author", $text);
 
 	# Do nothing for empty file lists
 	if (length($text) == 0)
 	{
-		print STDERR "    Skipping empty log entry.\n" if $opt_verbose;
+		log_output("ERROR: Skipping empty log entry by $author", $log);
 		return ("", "");
+	}
+
+	if ($log =~ /CVS.?SILENT/)
+	{
+		# Ignore this commit and reset silent status
+		log_output("Ignoring commit by $author", $log);
+		return ("", "");
+	}
+	if ($log =~ /^CCMAIL:\s*(.*)\s*$/)
+	{
+		add_to_cc($ccrecipients, $1)
 	}
 
 	# sort the list of affected files to make it look cooler
 	my @outlist = sort (split /^/, $text);
 
-	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><font color='#bb2222'><strong>$committer</strong></font>";
+	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><font color='#bb2222'><strong>$author</strong></font>";
 	$fmtHtml .= " <font color='#225522'><em>(on branch $tagname)</em></font>" if ($tagname ne "HEAD");
 	$fmtHtml .= "</td></tr>\n";
 
-	$fmtText .= "$committer";
+	$fmtText .= "$author";
 	$fmtText .= " (on branch $tagname)" if ($tagname ne "HEAD");
 	$fmtText .= ":\n";
 
@@ -480,7 +494,6 @@ sub dolog_commitlog($$$)
 	my $prev_author = "";
 	my $prev_outtext = "";
 	my $prev_logmessage = "";
-	my $silentcommit = 0;
 
 	open COMMITLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
 
@@ -500,7 +513,7 @@ sub dolog_commitlog($$$)
 			# "directory - New Directory" ?
 			# "directory - Import sources" ?
 			if(/^- /) {
-				$silentcommit = 1 if(/^- New/);
+				#FIXME: $silentcommit = 1 if(/^- New/);
 				next;
 			}
 			my @files = ();
@@ -528,20 +541,11 @@ sub dolog_commitlog($$$)
 		}
 		else
 		{
-			add_to_cc($ccrecipients, $1) if (/^CCMAIL:\s*(.*)\s*$/);
-			$silentcommit = 1 if (/CVS.?SILENT/);
-
 			if (/^---END---$/)
 			{
 				while (chomp $logmessage) {}
 
-				if ($silentcommit)
-				{
-					# Ignore this commit and reset silent status
-					log_output("Ignoring commit by $author", $outtext);
-					$silentcommit = 0;
-				}
-				elsif (($prev_logmessage eq $logmessage) && ($prev_author eq $author))
+				if (($prev_logmessage eq $logmessage) && ($prev_author eq $author))
 				{
 					# Append current output to previous output
 					log_output("Merging commit by $author", $outtext);
@@ -550,7 +554,7 @@ sub dolog_commitlog($$$)
 				else
 				{
 					# Process previous output
-					my @out = format_output($prev_author, $prev_outtext, $prev_logmessage, $module, $tagname);
+					my @out = format_output($prev_author, $prev_outtext, $prev_logmessage, $module, $tagname, $ccrecipients);
 					$fmtText .= $out[0];
 					$fmtHtml .= $out[1];
 
@@ -578,7 +582,7 @@ sub dolog_commitlog($$$)
 	close COMMITLOG;
 
 	# process last output set
-	my @out = format_output($prev_author, $prev_outtext, $prev_logmessage, $module, $tagname);
+	my @out = format_output($prev_author, $prev_outtext, $prev_logmessage, $module, $tagname, $ccrecipients);
 	$fmtText .= $out[0];
 	$fmtHtml .= $out[1];
 
@@ -632,7 +636,6 @@ sub dolog_rlog($$$)
 	my $directory = "";
 	my $author = "";
 	my $outtext = "";
-	my $silentcommit = 0; # TODO
 	my $removed = 0;
 
 	if ($commitlog)
@@ -846,7 +849,7 @@ sub dolog_rlog($$$)
 				$outtext .= "$filename\t$r1\t$r2\n";
 			}
 
-			my @out = format_output($author, $outtext, $log, $module, $tagname);
+			my @out = format_output($author, $outtext, $log, $module, $tagname, $ccrecipients);
 			$fmtText .= $out[0];
 			$fmtHtml .= $out[1];
 
