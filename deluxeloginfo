@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.53  2004/10/07 01:00:48  bernie
+# Don't pass -N to cvs rlog in order to get branch tags; Fix regex for branch numbers.
+#
 # Revision 2.52  2004/10/07 00:03:35  bernie
 # Cleanup and fix a bug with first revisions of branches.
 #
@@ -958,28 +961,6 @@ sub dolog_rlog($$)
 		$cvsdir = $1;
 	}
 
-
-	# Parser states:
-	#  1 - parsing file header
-	#  2 - parsing revision log
-	#  3 - parsing revision message
-	my $state = 1;
-
-	# initialize vars with the default values
-	my $file = "";
-	my $r2 = "";
-	my $log = "";
-
-	# A nested data structure to hold all collected log data
-	my $cslist = CSList->new;
-
-	my $directory = "";
-	my $date = "";
-	my $author = "";
-	my $outtext = "";
-	my $removed = 0;
-	my %rev_tags;
-
 	if ($commitlog)
 	{
 		open RLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
@@ -1012,9 +993,30 @@ sub dolog_rlog($$)
 		$dates .= `date --rfc-2822 -r $stamp.new`;
 		chomp $dates;
 
-		print STDERR "+ cvs -Qfn -d$cvsroot rlog -d '$dates' ''\n" if $opt_verbose;
-		open(RLOG, "-|") || exec 'cvs', '-Qfn', "-d$cvsroot", 'rlog', '-N', "-d$dates", '';
+		my @args = ('cvs', '-Qfn', "-d$cvsroot", 'rlog', "-d$dates", '');
+		print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
+		open(RLOG, "-|") || exec @args;
 	}
+
+	# A nested data structure to hold all collected log data
+	my $cslist = CSList->new;
+
+	# initialize vars with the default values
+	my $file = "";
+	my $r2 = "";
+	my $log = "";
+	my $directory = "";
+	my $date = "";
+	my $author = "";
+	my $outtext = "";
+	my $removed = 0;
+	my %rev_tags;
+
+	# Parser states:
+	#  1 - parsing file header
+	#  2 - parsing revision log
+	#  3 - parsing revision message
+	my $state = 1;
 
 	LOOP: while(<RLOG>)
 	{
@@ -1025,7 +1027,7 @@ sub dolog_rlog($$)
 				$file = $1;
 				%rev_tags = ();
 			}
-			elsif (/symbolic names:/)
+			elsif (/^symbolic names:/)
 			{
 				# Collect list of branches and tags:
 				#
@@ -1059,7 +1061,6 @@ sub dolog_rlog($$)
 					}
 					else
 					{
-print STDERR "rev_tags = " . join(',',%rev_tags) . "\n";
 						# bail out on end of tag list,
 						# reprocessing last input as a valid keyword.
 						redo LOOP;
@@ -1102,7 +1103,6 @@ print STDERR "rev_tags = " . join(',',%rev_tags) . "\n";
 				my $r1;
 
 				$r1 = guess_ancestor($r2);
-print STDERR "old, new = $r1 $r2\n";
 
 				if ($removed)
 				{
@@ -1117,16 +1117,15 @@ print STDERR "old, new = $r1 $r2\n";
 				# Try to match the file revision with a branch tag
 				# Make sure we have a branch revision number
 				# which is composed by at least 4 components.
-				# Also throw away the minor revision which we don't
-				# need to match the branch number. 
+				#
+				# We throw away the minor revision number which
+				# we don't need in order to match the branch number. 
 				#
 				my ($tagname, $r);
-				if (($r) = /^((?:\d+\.){3,})\.\d+$/)
+				$r = $r2 || $r1;
+				if ((($r) = ($r =~ /^(\d+(?:.\d+){2,})\.\d+$/)))
 				{
 					$tagname = $rev_tags{$r} || "UNKNOWN";
-print STDERR "r = $r\n";
-print STDERR "Huston, we have a branch\n";
-print STDERR "tagname = $tagname\n";
 				}
 
 				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2, $tagname, $date);
