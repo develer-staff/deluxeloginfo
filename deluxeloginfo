@@ -22,6 +22,9 @@
 #
 #
 # $Log$
+# Revision 2.40  2004/07/13 21:06:25  bernie
+# Add --index and --indexlines
+#
 # Revision 2.39  2004/07/09 09:24:27  bernie
 # Fix Bug # 426.
 #
@@ -97,6 +100,8 @@ my $opt_difflimit = 0;
 my $opt_cvsroot = "";
 my $opt_cvsprefix = "";
 my $opt_module = "";
+my $opt_index = 999;
+my $opt_indexlines = 1;
 
 
 #
@@ -345,7 +350,7 @@ sub bugzillate($)
 {
 	return if !$opt_bugurl;
 
-	$_[0] =~ s!#\s*(\d{2,6})!<a href='$opt_bugurl?id=$1'>#$1</a>!g;
+	$_[0] =~ s{#\s*(\d{2,6})}{<a href='$opt_bugurl?id=$1'>#$1</a>}g;
 }
 
 sub send_mail(\$\$\$$$$$)
@@ -359,9 +364,9 @@ sub send_mail(\$\$\$$$$$)
 		return;
 	}
 
-	# Avoid summary with just one ChangeSet
+	# Count the shange sets in the summary
 	my @foo = split /^/, $$summary;
-	if (@foo <= 1)
+	if (!defined($opt_index) || (($opt_index > 0) && @foo <= $opt_index))
 	{
 		$summary = "";
 	}
@@ -369,6 +374,7 @@ sub send_mail(\$\$\$$$$$)
 	{
 		# Complete the summary
 		$summary = "<h3>ChangeSet Index:</h3>\n<ul>\n" . $$summary . "</ul>\n";
+		bugzillate $summary;
 	}
 
 	# Build subject line
@@ -635,7 +641,8 @@ sub format_output($$$\$)
 		return ("", "");
 	}
 
-	my $incipit;
+	my $incipit = "";
+	my $incipit_lines = 0;
 	foreach (split '\n', $log)
 	{
 		if (/^CCMAIL:\s*(.*)\s*$/)
@@ -644,13 +651,21 @@ sub format_output($$$\$)
 			next;
 		}
 
-		# Collect first line
-		$incipit = $_ unless $incipit;
+		# Collect first lines
+		if ($incipit_lines < $opt_indexlines)
+		{
+			$incipit .= '<br />' if $incipit;
+			$incipit .= $_;
+		}
+		elsif ($incipit_lines == $opt_indexlines and $opt_indexlines != 0)
+		{
+			$incipit .= '[...]';
+		}
+		$incipit_lines++;
 	}
 
-	$summary .= "<li><a href='#cs$csnum'>ChangeSet $csnum</a> - $incipit</li>\n";
+	$summary .= "<li><a href='#cs$csnum'>CS$csnum</a> - $incipit</li>\n";
 
-#	$fmtHtml .= "<h3><a name='cs$csnum'>ChangeSet $csnum</a></h3>\n";
 	$fmtHtml .= "<table border='0' cellspacing='0' cellpadding='5' width='100%' bgcolor='#eeeeee'>\n";
 	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><font color='#bb2222'><strong><a name='cs$csnum'>$author</a></strong></font>";
 	$fmtHtml .= " <font color='#225522'><em>(on branch $tagname)</em></font>" if ($tagname ne "HEAD");
@@ -1105,6 +1120,8 @@ GetOptions(
 	'bugurl=s'	=> \$opt_bugurl,
 	'diff'		=> \$opt_diff,
 	'difflimit=n'	=> \$opt_difflimit,
+	'index:n'	=> \$opt_index,
+	'indexlines:n'	=> \$opt_indexlines,
 
 	'verbose'	=> \$opt_verbose,
 	'help'		=> sub { pod2usage(1); },
@@ -1182,14 +1199,15 @@ deluxeloginfo [options] [<file> ...]
    --outfile=file      use <file> as output instead of sending mail
    --sender=addr       specify sender address for CVS logs
    --maildomain=dom    specify e-mail domain for committers (used for To:)
-   --recipient=addr    specify e-mail recipient or newsgroups (news:foo.bar.baz)
+   --recipient=addr    specify e-mail recipient or newsgroups (news:foo.bar)
    --newsgroups=groups post log to a specified newsgroups (comma separated).
    --by-author         send one mail for each committer
 
    --module            CVS module to work on
    --prjtab=file       use <file> as a prjtab file to find CVS repositories
    --rlog              use cvs rlog output instead of loginfo files
-   --stampdir          where to store timestamps for cvs rlog (default: /var/state/loginfo)
+   --stampdir          where to store timestamps for cvs rlog
+                       (default: /var/state/loginfo)
    --keeplogs          keep log files instead of rotating them
 
    --cvsroot=root      base CVSROOT for use with cvs -d option
@@ -1198,6 +1216,10 @@ deluxeloginfo [options] [<file> ...]
    --bugurl=url        set URL for Bugzilla's show_bug.cgi (default: none)
    --diff              show diff for commits (requires --cvsroot)
    --difflimit=n       show up to <n> lines of diff output
+   --index[=n]         output a summary of ChangeSets.  If <n> is specified,
+                       the index is shown only when it contains at least <n>
+		       ChangeSets.
+   --indexlines=n      Number of log lines in an index entry (default: 1)
 
    --verbose           turn on verbose diagnostic output
    --help              brief help message
