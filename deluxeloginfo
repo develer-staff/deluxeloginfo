@@ -22,6 +22,9 @@
 #
 #
 # $Log$
+# Revision 2.66  2005/02/09 20:59:44  bernie
+# Fix UTC/localtime issue; Don't depend on GNU date and touch commands.
+#
 # Revision 2.65  2005/01/23 02:31:55  bernie
 # Add TODO items.
 #
@@ -304,7 +307,7 @@ sub append_file($$)
 }
 
 # Create empty file with specified owner
-sub create_empty_file($$$)
+sub create_empty_file($;$$)
 {
 	my $filename = shift;
 
@@ -321,6 +324,19 @@ sub create_empty_file($$$)
 			chmod $mode, $filename;
 		}
 	}
+}
+
+#
+# Return date of a file rgument in RFC2822 format (the format CVS understands),
+# or undef if file couldn't be stat'd.
+#
+sub rfc2822_date($)
+{
+	use Date::Format;
+	use File::stat;
+
+	my $st = stat(shift) or return undef;
+	return time2str("%a, %d %b %Y %H:%M:%S %z", $st->mtime, "UTC")
 }
 
 sub bugzillate($)
@@ -1088,15 +1104,14 @@ sub dolog_rlog($$)
 		$stamp .= ".stamp";
 		$stamp = "$opt_stampdir/$stamp";
 
+		# Update stamp file
+		create_empty_file("$stamp.new");
+
 		# Get timestamp from file, touch it and get filestamp again
-		my $dates;
-		$dates = `date --rfc-2822 -r $stamp`;
-		chomp $dates;
-		$dates = 'yesterday' if (!$dates);
-		`touch $stamp.new`; # Update stamp file
+		# (diff since yesterday if no previous stamp file is present).
+		my $dates = rfc2822_date($stamp) || "yesterday";
 		$dates .= "<";
-		$dates .= `date --rfc-2822 -r $stamp.new`;
-		chomp $dates;
+		$dates .= rfc2822_date("$stamp.new");
 
 		# NOTE: $module may be an empty string, which is fine with CVS
 		#       as it means "fetch the repository root".
