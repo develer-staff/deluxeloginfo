@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.11  2004/01/18 07:19:23  bernie
+# Print verbose output when not sending empty mails.
+#
 # Revision 2.10  2004/01/18 06:35:54  bernie
 # Don't pass '.' to cvs rlog to workaround assertion in cvs 1.11.11;
 # Check for cvs rlog falures and die soon instead of stomping the datestamp file.
@@ -133,7 +136,11 @@ sub send_mail(\$\$$$$$)
 	my ($text, $html, $module, $to, $cc, $author) = @_;
 
 	# Avoid sending empty mails
-	return if (!$$text);
+	if (!$$text)
+	{
+		print STDERR "Not sending empty mail.\n" if $opt_verbose;
+		return;
+	}
 
 	# Build subject line
 	my $subject = "CVS commit";
@@ -719,7 +726,7 @@ sub dolog_rlog($$$)
 	} # end while(<>)
 
 	close RLOG;
-	die "cvs rlog failed: $!" if $?;
+	die "Reading cvs rlog failed: $!" if $?;
 
 	# Commit date for next log
 	rename "$stamp.new", "$stamp" if ($stamp);
