@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.56  2004/11/24 00:32:05  bernie
+# Fix module handling for --rlog mode.
+#
 # Revision 2.55  2004/11/24 00:16:04  bernie
 # Simplify/fix prjtab parsing.
 #
@@ -510,11 +513,11 @@ sub dodiff($$$$)
 	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)$';
 	#$copts = "dpbB" if ($file =~ /$srcfile/);
 
-	my $cvsroot = $opt_cvsroot;
-	$cvsroot .= "/$module" if $module;
+	# Prepend module name to file name
+	$file = "$module/$file" if $module;
 
-	print STDERR "+ cvs -Qfn -d$cvsroot rdiff -kk -u$copts -r$r1 -r$r2 $file\n" if $opt_verbose;
-	open(CVS, "-|") || exec 'cvs', '-Qfn', "-d$cvsroot", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
+	print STDERR "+ cvs -Qfn -d$opt_cvsroot rdiff -kk -u$copts -r$r1 -r$r2 $file\n" if $opt_verbose;
+	open(CVS, "-|") || exec 'cvs', '-Qfn', "-d$opt_cvsroot", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
 
 	while(<CVS>)
 	{
@@ -973,10 +976,6 @@ sub dolog_rlog($$)
 	}
 	else
 	{
-		# Compose CVSROOT if needed
-		my $cvsroot = $opt_cvsroot;
-		$cvsroot .= "/$module" if $module;
-
 		if (! -d $opt_stampdir)
 		{
 			print STDERR "Creating $opt_stampdir since it doesn't exist\n";
@@ -984,7 +983,7 @@ sub dolog_rlog($$)
 		}
 
 		# Generate stamp file name from CVSROOT
-		$stamp = $cvsroot;
+		$stamp = $opt_cvsroot;
 		$stamp =~ tr|:\/\\@.|_____|;
 		$stamp .= ".stamp";
 		$stamp = "$opt_stampdir/$stamp";
@@ -999,7 +998,9 @@ sub dolog_rlog($$)
 		$dates .= `date --rfc-2822 -r $stamp.new`;
 		chomp $dates;
 
-		my @args = ('cvs', '-Qfn', "-d$cvsroot", 'rlog', "-d$dates", '');
+		# NOTE: $module may be an empty string, which is fine with CVS
+		#       as it means "fetch the repository root".
+		my @args = ('cvs', '-Qfn', "-d$opt_cvsroot", 'rlog', "-d$dates", "$module");
 		print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 		open(RLOG, "-|") || exec @args;
 	}
