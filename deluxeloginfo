@@ -21,6 +21,9 @@
 #
 #
 # $Log$
+# Revision 2.44  2004/07/14 23:23:48  bernie
+# Also HTMLize log messages.
+#
 # Revision 2.43  2004/07/14 23:05:46  bernie
 # Optimize away redundant <font>..</font> elements;
 # Various HTML fixes reported by W3C's validator.
@@ -499,9 +502,17 @@ sub dodiff($$$$)
 		$diff .= $_;
 	}
 	close(CVS);
-	$diff .= "\n" if (length($diff));
+	$diff .= "\n" if length($diff);
 
 	return $diff;
+}
+
+sub htmlize(\$)
+{
+	local $_ = shift;
+	s/&/&amp;/g;
+	s/</&lt;/g;
+	s/>/&gt;/g;
 }
 
 sub diff2html($)
@@ -515,9 +526,7 @@ sub diff2html($)
 		chomp;
 
 		# Replace HTML reserved chars with entities
-		s/&/&amp;/g;
-		s/</&lt;/g;
-		s/>/&gt;/g;
+		htmlize $_;
 
 		# Mark leading whitespace at EOL
 		s/([^ ])(\s+)$/$1<span style="background-color: #FF0000">$2<\/span>/;
@@ -621,6 +630,7 @@ sub format_output($$$\$)
 		$incipit_lines++;
 	}
 
+	htmlize $incipit;
 	$summary .= "<li><a href='#cs$csnum'>CS$csnum</a> - $incipit</li>\n";
 
 	$fmtHtml .= "<a name='cs$csnum'></a>\n";
@@ -643,7 +653,8 @@ sub format_output($$$\$)
 	}
 
 	$fmtText .= "$log\n";
-	bugzillate($log);
+	htmlize $log;
+	bugzillate $log;
 	$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'><pre>$log</pre></td></tr>\n";
 
 	foreach my $filerev (@files)
