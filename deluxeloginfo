@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.30  2004/06/27 10:04:33  bernie
+# Use ChangeLog class in place of bare data structure.
+#
 # Revision 2.29  2004/06/27 09:10:19  bernie
 # Fold even more code into FileRev
 #
@@ -77,8 +80,6 @@ sub new($$$$$)
 	my ($class, $cvsdir, $filename, $rev, $removed) = @_;
 	my $self = {};
 	bless $self, $class;
-
-	print STDERR "bernie: $class, $cvsdir, $filename, $rev, $removed\n";
 
 	#
 	# Normalize filename
@@ -143,6 +144,35 @@ sub r1 { return shift->{r1}; }
 
 # Return new file revision
 sub r2 { return shift->{r2}; }
+
+
+#
+# Handle a list of changed files, the associated log message and the author
+#
+package ChangeSet;
+
+# Construct a new ChangeSet.  Arg1 is the author, arg2 is the log message
+sub new($$$)
+{
+	my $class = shift;
+	bless { author => shift, log => shift, files => [] }, $class;
+}
+
+# Add a new FileRev entry
+sub add
+{
+	my $self = shift;
+	push @{$self->{files}}, shift;
+}
+
+# Retrieve the author name
+sub author { return shift->{author}; }
+
+# Retrieve the log message
+sub log { return shift->{log}; }
+
+# Return an array of FileRev objects
+sub files { return @{shift->{files}}; }
 
 
 #
@@ -822,27 +852,31 @@ sub dolog_rlog($$$)
 
 				if (my $l = $author_logs{$author})
 				{
-					if (my $f = ${$l}{$log})
+					if (my $changeset = ${$l}{$log})
 					{
 						log_output("Append new file for $author on $file rev $rev");
 
 						# Append new file to existing log message
-						push @$f, $filerev;
+						$changeset->add($filerev);
 					}
 					else
 					{
-						log_output("Create new log for $author on $file rev $rev", $log);
+						log_output("Create new ChangeSet for $author on $file rev $rev", $log);
 
 						# Create new log message 
-						${$l}{$log} = [ $filerev ];
+						my $changeset = ChangeSet->new($author, $log); 
+						$changeset->add($filerev);
+						${$l}{$log} = $changeset;
 					}
 				}
 				else
 				{
 					log_output("Create new author $author with $file rev $rev", $log);
 
-					# Create new log message and append file/rev pair to it
-					$author_logs{$author} = { $log => [ $filerev ] };
+					# Create new changeset and append file/rev pair to it
+					my $changeset = ChangeSet->new($author, $log); 
+					$changeset->add($filerev);
+					$author_logs{$author} = { $log => $changeset };
 				}
 
 				$log = "";
@@ -871,7 +905,7 @@ sub dolog_rlog($$$)
 		foreach my $log (keys %{$author_logs{$author}})
 		{
 			my $outtext = "";
-			my $filelist = @{$author_logs{$author}}{$log};
+			my $changeset = @{$author_logs{$author}}{$log};
 
 			#DEBUG
 			#use Dumpvalue;
@@ -880,7 +914,7 @@ sub dolog_rlog($$$)
 			#$dumper->dumpValue($filelist);
 			#print STDERR "**** END filelist ****\n";
 
-			foreach my $frev (@$filelist)
+			foreach my $frev ($changeset->files)
 			{
 				#DEBUG
 				#print STDERR "**** BEGIN filerev ****\n";
