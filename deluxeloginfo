@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.21  2004/06/14 02:52:42  bernie
+# Make newsgroups support more general.
+#
 # Revision 2.20  2004/06/01 01:10:20  bernie
 # Add (experimental) newsgroups support.
 #
@@ -59,7 +62,6 @@ my $opt_verbose;
 my $opt_logfile = "";
 my $opt_sender = "cvs\@develer.com";
 my $opt_recipient = "";
-my $opt_newsgroups;
 my $opt_outfile = "";
 my $opt_prjtab = "";
 my $opt_rlog;
@@ -112,10 +114,9 @@ sub create_empty_file($$$)
 
 sub bugzillate($)
 {
-	if ($opt_bugurl)
-	{
-		$_[0] =~ s#\#(\d{2,6})#<a href='$opt_bugurl?id=$1'>\#$1</a>#g;
-	}
+	return if !$opt_bugurl;
+
+	$_[0] =~ s#\#(\d{2,6})#<a href='$opt_bugurl?id=$1'>\#$1</a>#g;
 }
 
 sub send_mail(\$\$$$$$)
@@ -152,11 +153,24 @@ sub send_mail(\$\$$$$$)
 		$from = "CVS logger <$opt_sender>";
 	}
 
+	my $newsgroups = "";
+
 	# Force recipient if set
 	if ($opt_recipient)
 	{
 		$to = $opt_recipient;
-		$cc = "";
+	}
+
+	# Strip "mailto:" (the default)
+	if ($to =~ /^mailto:(.+)/)
+	{
+		$to = $1;
+	}
+	# Match newsgroups
+	elsif ($to =~ /^news:(.+)/)
+	{
+		$newsgroups = $1;
+		$to = "";
 	}
 
 	if ($opt_outfile)
@@ -164,21 +178,26 @@ sub send_mail(\$\$$$$$)
 		print STDERR "Writing mail to '$opt_outfile'...\n" if $opt_verbose;
 		open (MAIL, ">>$opt_outfile") or die "Couldn't open outfile: $!";
 	}
-	elsif ($opt_newsgroups)
+	elsif ($newsgroups)
 	{
-		print STDERR "Posting article in $opt_newsgroups...\n" if $opt_verbose;
+		print STDERR "Posting article in '$newsgroups'...\n" if $opt_verbose;
 		open (MAIL, "|/usr/bin/inews -h") or die "Couldn't exec inews: $!";
 	}
-	else
+	elsif ($to)
 	{
 		print STDERR "Sending mail to <$to>...\n" if $opt_verbose;
 		open (MAIL, "|/usr/lib/sendmail -t") or die "Couldn't exec sendmail: $!";
+	}
+	else
+	{
+		print STDERR "No recipient, discarding mail.\n" if $opt_verbose;
+		open (MAIL, ">/dev/null") or die "Couldn't open /dev/null: $!";
 	}
 
 	print MAIL "From: $from\n";
 	print MAIL "To: $to\n" if ($to);
 	print MAIL "Cc: $cc\n" if ($cc);
-	print MAIL "Newsgroups: $opt_newsgroups\n" if ($opt_newsgroups);
+	print MAIL "Newsgroups: $newsgroups\n" if ($newsgroups);
 	print MAIL "Subject: $subject\n";
 
 	print MAIL <<EOF;
@@ -894,7 +913,6 @@ GetOptions(
 	'keeplogs'	=> \$opt_keeplogs,
 	'sender=s'	=> \$opt_sender,
 	'recipient=s'	=> \$opt_recipient,
-	'newsgroups=s'  => \$opt_newsgroups,
 	'maildomain=s'	=> \$opt_maildomain,
 
 	'module=s'	=> \$opt_module,
@@ -986,7 +1004,7 @@ deluxeloginfo [options] [<file> ...]
    --outfile=file      use <file> as output instead of sending mail
    --sender=addr       specify sender address for CVS logs
    --maildomain=dom    specify e-mail domain for committers (used for To:)
-   --recipient=addr    force email recipient (disables Cc: recipients too)
+   --recipient=addr    specify e-mail recipient or newsgroups (news:foo.bar.baz)
    --newsgroups=groups post log to a specified newsgroups (comma separated).
    --by-author         send one mail for each committer (currently only for rlog mode)
 
@@ -1023,10 +1041,14 @@ Put something like this in your crontab:
 If you have multiple CVS repositories, you can process all them at once
 by setting up a project description file like this:
  
-   #name	CVSROOT		notify
-   kde		/cvs/kde	kde-devel@lists.kde.org
-   gnome	/cvs/gnome	gnome-devel@lists.gnome.org
-   uclinux	/home/cvsroot   bernie@develer.com
+   #NAME	CVSROOT					RECIPIENTS
+   kde		/cvs/kde				kde-devel@lists.kde.org
+   gnome	/cvs/gnome				gnome-devel@lists.gnome.org
+   uclinux	:ext:bernie@cvs.uclinux.org:/cvsroot	uclinux-dev@uclinux.org
+   gcc		:pserver:bernie@gcc.gnu.org:/cvs/gcc	news:comp.lang.c++,gnu.misc.discuss
+
+Multiple recipients can be specified separated by commas.
+Prefix the address with "news:" to post to newsgroups.
 
 =head1 AUTHOR
 
