@@ -22,6 +22,9 @@
 #
 #
 # $Log$
+# Revision 2.38  2004/06/29 10:04:03  bernie
+# Some --help corrections.
+#
 # Revision 2.37  2004/06/27 23:40:02  bernie
 # Add summary index; Cleanup HTML output; Add TODO list.
 #
@@ -1177,12 +1180,12 @@ deluxeloginfo [options] [<file> ...]
    --maildomain=dom    specify e-mail domain for committers (used for To:)
    --recipient=addr    specify e-mail recipient or newsgroups (news:foo.bar.baz)
    --newsgroups=groups post log to a specified newsgroups (comma separated).
-   --by-author         send one mail for each committer (currently only for rlog mode)
+   --by-author         send one mail for each committer
 
    --module            CVS module to work on
    --prjtab=file       use <file> as a prjtab file to find CVS repositories
    --rlog              use cvs rlog output instead of loginfo files
-   --stampdir          directory to store timestamps for cvs rlog dates
+   --stampdir          where to store timestamps for cvs rlog (default: /var/state/loginfo)
    --keeplogs          keep log files instead of rotating them
 
    --cvsroot=root      base CVSROOT for use with cvs -d option
