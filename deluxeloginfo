@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.28  2004/06/27 08:40:32  bernie
+# Fold some code into FileRev
+#
 # Revision 2.27  2004/06/27 08:28:36  bernie
 # Prune CVS log.
 #
@@ -63,10 +66,35 @@ my $opt_module = "";
 #
 package FileRev;
 
-sub new($$)
+sub new($$$$)
 {
-	shift;
+	shift; # ignore class (is this good?)
 	bless { file => shift, rev => shift, removed => shift };
+}
+
+# Return normalized filename
+sub filename($)
+{
+	my ($self, $cvsdir) = @_;
+	my $filename = $self->{file};
+
+
+	# Prune ,v suffix from filename
+	$filename =~ s|,v$||;
+
+	# Prune CVS repository path from filename
+	$filename =~ s|^$cvsdir/|| if $cvsdir;
+
+	# Prune Attic directory from filename
+	$filename =~ s|/Attic/|/|;
+
+	# Prune leading '/' at the beginning of the path
+	$filename =~ s|^/||;
+
+	# Remove any spurious '//' sequences from CVS
+	$filename =~ s|//|/|g;
+
+	return $filename;
 }
 
 #
@@ -810,22 +838,7 @@ sub dolog_rlog($$$)
 				#$dumper->dumpValue($filerev);
 				#print STDERR "**** END filerev ****\n";
 
-				my ($filename, $rev, $removed) = ( $$filerev{file}, $$filerev{rev}, $$filerev{removed} );
-
-				# Prune ,v suffix from filename
-				$filename =~ s|,v$||;
-
-				# Prune CVS repository path from filename
-				$filename =~ s|^$cvsdir/|| if $cvsdir;
-
-				# Prune Attic directory from filename
-				$filename =~ s|/Attic/|/|;
-
-				# Prune leading '/' at the beginning of the path
-				$filename =~ s|^/||;
-
-				# Remove any spurious '//' sequences from CVS
-				$filename =~ s|//|/|g;
+				my ($rev, $removed) = ( $$filerev{rev}, $$filerev{removed} );
 
 				# Get major/minor revision numbers
 				my ($r1, $r2);
@@ -854,6 +867,7 @@ sub dolog_rlog($$$)
 					$r1 = "NONE";
 				}
 
+				my $filename = $filerev->filename($cvsdir);
 				$outtext .= "$filename\t$r1\t$r2\n";
 			}
 
