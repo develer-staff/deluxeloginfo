@@ -18,6 +18,9 @@
 #
 #
 # $Log$
+# Revision 2.27  2004/06/27 08:28:36  bernie
+# Prune CVS log.
+#
 # Revision 2.26  2004/06/27 08:27:55  bernie
 # Mark enscript code as being unused.
 #
@@ -26,42 +29,6 @@
 #
 # Revision 2.24  2004/06/27 08:17:29  bernie
 # Introduce OO syntax for file revisions.
-#
-# Revision 2.23  2004/06/24 22:26:14  bernie
-# Use iso-8859-1 encoding for better compatibility with CVS logs edited with Windows frontends.
-#
-# Revision 2.22  2004/06/24 01:31:46  bernie
-# Update Copyright info.
-#
-# Revision 2.21  2004/06/14 02:52:42  bernie
-# Make newsgroups support more general.
-#
-# Revision 2.20  2004/06/01 01:10:20  bernie
-# Add (experimental) newsgroups support.
-#
-# Revision 2.19  2004/05/31 19:48:00  bernie
-# Pass 2nd parameter to log_output()
-#
-# Revision 2.18  2004/05/30 16:53:14  bernie
-# Match '+++ ' and '--- ' rather than '+++' and '---' to avoid confusion with second order diffs.
-#
-# Revision 2.17  2004/05/23 15:13:01  bernie
-# Collect multiple CCMAIL lines in a log message.
-#
-# Revision 2.16  2004/05/22 20:32:37  bernie
-# CVS-SILENT: Trim changelog.
-#
-# Revision 2.15  2004/05/22 20:28:15  bernie
-# Fold handling of CVSSILENT and CCMAIL into formtat_output().
-#
-# Revision 2.14  2004/05/14 19:19:16  bernie
-# Fix spelling error.
-#
-# Revision 2.13  2004/05/12 01:18:49  bernie
-# Several adjustments to use --rlog mode with --prjtab on local repositories.
-#
-# Revision 2.12  2004/04/13 05:53:17  bernie
-# Fix for CVS problems parsing CEST time zone.
 #
 
 use strict;
