@@ -11,13 +11,16 @@
 # the Free Software Foundation; either version 2 of the License, or
 # (at your option) any later version.
 #
-# Based on KDE's loginfo.pl:
+# Loosley based on KDE's loginfo.pl:
 #   free of any copyright. Originally written by taj@kde.org with small changes
 #   by coolo@kde.org and daniel.naber@t-online.de
 #   Many improvements and fixes by dirk@kde.org
 #
 #
 # $Log$
+# Revision 2.13  2004/05/12 01:18:49  bernie
+# Several adjustments to use --rlog mode with --prjtab on local repositories.
+#
 # Revision 2.12  2004/04/13 05:53:17  bernie
 # Fix for CVS problems parsing CEST time zone.
 #
@@ -413,17 +416,21 @@ sub format_output($$$$$)
 		my $statelink = $state;
 		if ($opt_cvsurl)
 		{
+			# Prepend a slash to the module name if needed, define to an empty string otherwise
+			my $module_path = "";
+			$module_path = "/$module" if $module;
+
 			if($state eq 'M')
 			{
-				$statelink = "<a href=\"$opt_cvsurl/$module/$file.diff?r1=text&tr1=$r1&r2=text&tr2=$r2&diff_format=h\">$state</a>";
+				$statelink = "<a href=\"$opt_cvsurl$module_path/$file.diff?r1=text&tr1=$r1&r2=text&tr2=$r2&diff_format=h\">$state</a>";
 			}
 			elsif($state eq 'A')
 			{
-				$statelink = "<a href=\"$opt_cvsurl/$module/$file?rev=$r2&content-type=text/vnd.viewcvs-markup\">$state</a>";
+				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$r2&content-type=text/vnd.viewcvs-markup\">$state</a>";
 			}
 			elsif($state eq 'R')
 			{
-				$statelink = "<a href=\"$opt_cvsurl/$module/$file?rev=$r1&content-type=text/vnd.viewcvs-markup\">$state</a>";
+				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$r1&content-type=text/vnd.viewcvs-markup\">$state</a>";
 			}
 		}
 
@@ -574,6 +581,23 @@ sub dolog_commitlog($$$)
 
 	# Send mail
 	send_mail($fmtText, $fmtHtml, $module, $recipient, $ccrecipients, undef);
+
+	# Rotate log file
+	if (!$opt_keeplogs)
+	{
+		my $oldlog = $commitlog;
+		if ($commitlog =~ /^(.*)\.new$/)
+		{
+			$oldlog = $1;
+		}
+		else
+		{
+			$oldlog = "$commitlog.old";
+		}
+			
+		append_file($commitlog, $oldlog);
+		create_empty_file($commitlog, "cvs", 0660);
+	}
 }
 
 #
@@ -780,11 +804,14 @@ sub dolog_rlog($$$)
 				# Prune CVS repository path from filename
 				$filename =~ s|^$cvsdir/|| if $cvsdir;
 
+				# Prune Attic directory from filename
+				$filename =~ s|/Attic/|/|;
+
 				# Prune leading '/' at the beginning of the path
 				$filename =~ s|^/||;
 
-				# Prune Attic directory from filename
-				$filename =~ s|/Attic/|/|;
+				# Remove any spurious '//' sequences from CVS
+				$filename =~ s|//|/|g;
 
 				# Get major/minor revision numbers
 				my ($r1, $r2);
@@ -894,14 +921,14 @@ GetOptions(
 	'man'		=> sub { pod2usage(-exitstatus => 0, -verbose => 2); },
 ) or pod2usage(2);
 
+if (($opt_prjtab || $opt_rlog) && @ARGV)
+{
+	print STDERR "ERROR: input file arguments are mutually exclusive with --rlog and --prjtab modes.\n";
+	pod2usage(1);
+}
+
 if($opt_prjtab)
 {
-	if (@ARGV)
-	{
-		print STDERR "ERROR: --prjtab and input file arguments are mutually exclusive.\n";
-		pod2usage(1);
-	}
-
 	print STDERR "Opening prjtab file: $opt_prjtab...\n" if $opt_verbose;
 	open PRJTAB, $opt_prjtab or die "couldn't open $opt_prjtab: $!\n";
 
@@ -914,25 +941,22 @@ if($opt_prjtab)
 		my ($prjname, $cvsdir, $email) = split(' ', $_, 3);
 		chomp $email;
 
-		my $commitlog = "$cvsdir/commitlog.new";
+		my $commitlog;
+		$commitlog = "$cvsdir/commitlog.new" if !$opt_rlog;
+
+		# Strip away CVS directory when using rlog
+		$opt_cvsprefix=$cvsdir if ($opt_rlog);
 
 		dolog($prjname, $commitlog, $email);
-
-		if (!$opt_keeplogs)
-		{
-			# Rotate log file
-			append_file($commitlog, "$cvsdir/commitlog");
-			create_empty_file($commitlog, "cvs", 0660);
-		}
 	}
 
 	close PRJTAB;
 }
-elsif ($opt_rlog && $opt_cvsroot && !@ARGV)
+elsif ($opt_rlog)
 {
-	if (@ARGV)
+	if (!$opt_cvsroot)
 	{
-		print STDERR "ERROR: --rlog and input file arguments are mutually exclusive.\n";
+		print STDERR "ERROR: --rlog specified and no --cvsroot given.\n";
 		pod2usage(1);
 	}
 
