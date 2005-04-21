@@ -19,9 +19,13 @@
 #
 # TODO: Sort headers before C/C++ sources in changesets
 # TODO: Coalesce diffs of same file in same changeset with same comment
+# TODO: Ignore hunks containing only "*#*" changes.
 #
 #
 # $Log$
+# Revision 2.67  2005/04/21 18:49:21  bernie
+# bugzillate(): Work harder.
+#
 # Revision 2.66  2005/02/09 20:59:44  bernie
 # Fix UTC/localtime issue; Don't depend on GNU date and touch commands.
 #
@@ -343,7 +347,8 @@ sub bugzillate($)
 {
 	return unless $opt_bugurl;
 
-	$_[0] =~ s{#\s*(\d{2,6})}{<a href='$opt_bugurl?id=$1'>#$1</a>}g;
+	# "Bug 123", "bug #123", or just "#123"
+	$_[0] =~ s{((?:[Bb]ug\s*(?:#|)|#)\s*)(\d{2,6})}{<a href='$opt_bugurl?id=$2'>$1$2</a>}g;
 }
 
 #
