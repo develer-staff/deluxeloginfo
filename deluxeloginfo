@@ -19,46 +19,30 @@
 #
 # TODO: Sort headers before C/C++ sources in changesets
 # TODO: Coalesce diffs of same file in same changeset with same comment
-# TODO: Ignore hunks containing only "*#*" changes.
 #
 #
-# $Log$
-# Revision 2.69  2005/04/25 05:26:05  bernie
-# Use string compare for CVS keywords.
-#
-# Revision 2.68  2005/04/25 05:23:25  bernie
-# Show binary files and don't try to diff them.
-#
-# Revision 2.67  2005/04/21 18:49:21  bernie
-# bugzillate(): Work harder.
-#
-# Revision 2.66  2005/02/09 20:59:44  bernie
-# Fix UTC/localtime issue; Don't depend on GNU date and touch commands.
-#
-# Revision 2.65  2005/01/23 02:31:55  bernie
-# Add TODO items.
-#
-# Revision 2.64  2004/12/30 03:01:40  bernie
-# --encoding: New option; Strip CVS log.
-#
-# Revision 2.63  2004/12/27 01:26:58  bernie
-# Improve de-htmlification; Merge ASCII and text signatures.
-#
-# Revision 2.62  2004/12/27 01:06:01  bernie
-# Also print CS index in text output.
-#
-# Revision 2.61  2004/12/27 00:32:04  bernie
-# --noascii, --nohtml: New options.
-#
-# Revision 2.60  2004/12/26 22:36:39  bernie
-# Reorder options parsing to match help; Kill doc for --newsgroups and fix doc for --recipient.
-#
-# Revision 2.59  2004/12/26 22:24:54  bernie
-# Document options by category.
-#
-# Revision 2.58  2004/11/26 02:27:41  bernie
-# Also consider CVS module to generate stamp file.
-#
+
+#*# $Log$
+#*# Revision 2.70  2005/04/25 05:56:21  bernie
+#*# Ignore boring hunks.
+#*#
+#*# Revision 2.69  2005/04/25 05:26:05  bernie
+#*# Use string compare for CVS keywords.
+#*#
+#*# Revision 2.68  2005/04/25 05:23:25  bernie
+#*# Show binary files and don't try to diff them.
+#*#
+#*# Revision 2.67  2005/04/21 18:49:21  bernie
+#*# bugzillate(): Work harder.
+#*#
+#*# Revision 2.66  2005/02/09 20:59:44  bernie
+#*# Fix UTC/localtime issue; Don't depend on GNU date and touch commands.
+#*#
+#*# Revision 2.65  2005/01/23 02:31:55  bernie
+#*# Add TODO items.
+#*#
+#*# Revision 2.64  2004/12/30 03:01:40  bernie
+#*# --encoding: New option; Strip CVS log.
 
 use strict;
 use Getopt::Long;
@@ -593,8 +577,6 @@ sub send_mail(\$\$\$$$$$)
 sub dodiff($$$$)
 {
 	my ($module, $file, $r1, $r2) = @_;
-	my $diff = "";
-	my $cnt = 0;
 	my $copts = "";
 
 	# Avoid diffs for files added or removed from CVS
@@ -616,6 +598,10 @@ sub dodiff($$$$)
 	print STDERR "+ cvs -Qfn -d$opt_cvsroot rdiff -kk -u$copts -r$r1 -r$r2 $file\n" if $opt_verbose;
 	open(CVS, "-|") || exec 'cvs', '-Qfn', "-d$opt_cvsroot", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
 
+	my $cnt = 0;
+	my $hunk = "";
+	my $interesting = 0;
+	my $diff = "";
 	while(<CVS>)
 	{
 		next if /^Index:/;
@@ -631,8 +617,26 @@ sub dodiff($$$$)
 			while (<CVS>) {}
 			last;
 		}
-		$diff .= $_;
+
+		# Begin of a new hunk?
+		if (/^@@/)
+		{
+			# Consider the hunk only if it wasn't boring
+			$diff .= $hunk if $interesting;
+			$hunk = "";
+			$interesting = 0;
+		}
+
+		$hunk .= $_;
+
+		# A change that doesn't only contain CVS output is interesting.
+		$interesting++ if /^[\-\+]/
+			&& !/\#\*\#/ && !/\*\#\*/ && !/\$(Version|Revision|Log)/;
 	}
+
+	# Pick last hunk too
+	$diff .= $hunk if ($interesting);
+
 	close(CVS);
 	$diff .= "\n" if length($diff);
 
