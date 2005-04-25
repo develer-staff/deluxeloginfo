@@ -17,12 +17,14 @@
 #   Many improvements and fixes by dirk@kde.org
 #
 #
-# TODO: Sort headers before C/C++ sources in changesets
 # TODO: Coalesce diffs of same file in same changeset with same comment
 #
 #
 
 #*# $Log$
+#*# Revision 2.72  2005/04/25 06:35:19  bernie
+#*# Sort headers before implementations.
+#*#
 #*# Revision 2.71  2005/04/25 05:58:21  bernie
 #*# Also ignore Id tag.
 #*#
@@ -206,8 +208,35 @@ sub log { return shift->{log}; }
 # Return the branch tag for the file
 sub tag { return shift->{tag} || "HEAD"; }
 
-# Return an array of FileRev objects - TODO: sort by file name?
-sub files { return @{shift->{files}}; }
+# Return an array of FileRev objects
+sub files
+{
+	my @fr = @{shift->{files}};
+
+	# Fancy sort that makes headers appear before sources, to make code
+	# reviews somewhat easier.
+	sort {
+		my $name_a = $a->filename();
+		my $name_b = $b->filename();
+
+		# Split into basename + extension
+		my ($base_a, $ext_a) = ($name_a =~ /^(.*)\.([^.\/]*)$/);
+		my ($base_b, $ext_b) = ($name_b =~ /^(.*)\.([^.\/]*)$/);
+
+		print "base_a=$base_a, ext_a=$ext_a, base_b=$base_b, ext_b=$ext_b\n";
+
+		# Same basename and non-null extensions?
+		if (($base_a eq $base_b) && $ext_a && $ext_b)
+		{
+			# Sort headers before implementations
+			return -1 if ($ext_a =~ /^h|hh|hxx|hpp|h\+\+$/) && ($ext_b =~ /^c|cpp|cc|cxx|C|c\+\+$/);
+			return +1 if ($ext_b =~ /^h|hh|hxx|hpp|h\+\+$/) && ($ext_a =~ /^c|cpp|cc|cxx|C|c\+\+$/);
+		}
+
+		# Sort normally
+		return $name_a cmp $name_b;
+	} @fr;
+}
 
 
 #
@@ -588,11 +617,11 @@ sub dodiff($$$$)
 	# Avoid diffs for files removed from CVS
 	return "" if ($r2 eq "NONE");
 
-	# Workaround for first revion of added files (does only work with rdiff!)
+	# Workaround for first revision of added files (does only work with rdiff!)
 	$r1 = "1.0" if ($r1 eq "NONE");
 
 	# Regex to match source files (doesn't work with cvs rdiff)
-	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)$';
+	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)$';
 	#$copts = "dpbB" if ($file =~ /$srcfile/);
 
 	# Prepend module name to file name
