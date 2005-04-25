@@ -23,6 +23,9 @@
 #
 #
 # $Log$
+# Revision 2.69  2005/04/25 05:26:05  bernie
+# Use string compare for CVS keywords.
+#
 # Revision 2.68  2005/04/25 05:23:25  bernie
 # Show binary files and don't try to diff them.
 #
@@ -173,7 +176,7 @@ sub tag { return shift->{tag} || "HEAD"; }
 sub date { return shift->{date}; }
 
 # Tell if this file is binary
-sub is_binary { return shift->{keywords} == "kb"; }
+sub is_binary { return shift->{keywords} eq "kb"; }
 
 #
 # Handle a list of changed files, the associated log message and the author
