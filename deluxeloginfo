@@ -23,6 +23,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.71  2005/04/25 05:58:21  bernie
+#*# Also ignore Id tag.
+#*#
 #*# Revision 2.70  2005/04/25 05:56:21  bernie
 #*# Ignore boring hunks.
 #*#
@@ -631,7 +634,7 @@ sub dodiff($$$$)
 
 		# A change that doesn't only contain CVS output is interesting.
 		$interesting++ if /^[\-\+]/
-			&& !/\#\*\#/ && !/\*\#\*/ && !/\$(Version|Revision|Log)/;
+			&& !/\#\*\#/ && !/\*\#\*/ && !/\$(Version|Revision|Id|Log):/;
 	}
 
 	# Pick last hunk too
