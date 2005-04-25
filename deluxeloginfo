@@ -23,6 +23,9 @@
 #
 #
 # $Log$
+# Revision 2.68  2005/04/25 05:23:25  bernie
+# Show binary files and don't try to diff them.
+#
 # Revision 2.67  2005/04/21 18:49:21  bernie
 # bugzillate(): Work harder.
 #
@@ -108,6 +111,11 @@ sub log_output
 #
 package FileRev;
 
+#
+# Construct a FileRev object
+#
+# SYNOPSIS: FileRev->new(cvsdir, filename, r1, r2, tag, date, keywords)
+#
 sub new($$$$$$$)
 {
 	#
@@ -120,7 +128,8 @@ sub new($$$$$$$)
 		r1 => shift,
 		r2 => shift,
 		tag => shift,
-		date => shift
+		date => shift,
+		keywords => shift
 	};
 	bless $self, $class;
 
@@ -145,10 +154,6 @@ sub new($$$$$$$)
 
 	$self->{filename} = $filename;
 
-	#
-	# Extract old/new revisions
-	#
-
 	return $self;
 }
 
@@ -167,6 +172,8 @@ sub tag { return shift->{tag} || "HEAD"; }
 # Return commit timestamp
 sub date { return shift->{date}; }
 
+# Tell if this file is binary
+sub is_binary { return shift->{keywords} == "kb"; }
 
 #
 # Handle a list of changed files, the associated log message and the author
@@ -259,6 +266,8 @@ sub add_filerev
 
 #
 # Construct a FileRev entry and add it with CSList::add_filerev()
+#
+# SYNOPSIS: cs_list->add_file(author, log, cvsdir, file, r1, r2, tagname, date, keywords)
 #
 sub add_file
 {
@@ -826,10 +835,12 @@ sub format_output($$$\$)
 		$state = 'A' if ($r1 eq "NONE");
 
 		# Find out a "good" revision to link to
-		my $rev = $r2;
-		$rev = $r1 if ($r2 eq "NONE");
+		my $rev = ($r2 eq "NONE") ? $r1 : $r2;
 
-		$fmtText .= sprintf("$state %6s  $file\n", $rev);
+		my $binary_text = "";
+		$binary_text = "[BIN] " if ($filerev->is_binary);
+
+		$fmtText .= sprintf("$state %6s  $binary_text$file\n", $rev);
 
 		my $statelink = $state;
 		if ($opt_cvsurl)
@@ -842,17 +853,11 @@ sub format_output($$$\$)
 			{
 				$statelink = "<a href=\"$opt_cvsurl$module_path/$file.diff?r1=text&amp;tr1=$r1&amp;r2=text&amp;tr2=$r2&amp;diff_format=h\">$state</a>";
 			}
-			elsif ($state eq 'A')
+			else # 'R' or 'A'
 			{
-				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$r2&amp;content-type=text/vnd.viewcvs-markup\">$state</a>";
-			}
-			elsif ($state eq 'R')
-			{
-				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$r1&amp;content-type=text/vnd.viewcvs-markup\">$state</a>";
+				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$rev&amp;content-type=text/vnd.viewcvs-markup\">$state</a>";
 			}
 		}
-
-		$diff .= dodiff($module, $file, $r1, $r2) if ($opt_diff);
 
 		my $color = "";
 		my $color_end = "";
@@ -860,7 +865,13 @@ sub format_output($$$\$)
 		if ($state eq 'R') { $color = '<font color="#880000">' };
 		$color_end = "</font>" if $color;
 
-		$fmtHtml .= "<tr><td width='1%'>$statelink</td><td width='1%'>$color$rev$color_end</td><td width='100%'>$color$file$color_end</td></tr>\n";
+		$fmtHtml .= "<tr><td width='1%'>$statelink</td><td width='1%'>$color$rev$color_end</td><td width='100%'>$binary_text$color$file$color_end</td></tr>\n";
+
+
+		if ($opt_diff && !$binary_text)
+		{
+			$diff .= dodiff($module, $file, $r1, $r2);
+		}
 	}
 	$fmtHtml .= "</table>\n";
 
@@ -1026,7 +1037,8 @@ sub dolog_commitlog($$)
 					next if (!length($f));
 					my ($file, $r1, $r2) = $f =~ /(.+),(.+),(.+)/;
 					my $relfile = "$directory/$file";
-					$cslist->add_file($author, $logmessage, "", $relfile, $r1, $r2, $tagname, $date);
+					# FIXME: no way to tell if a file is binary?
+					$cslist->add_file($author, $logmessage, "", $relfile, $r1, $r2, $tagname, $date, 'kv');
 				}
 
 				# Restart
@@ -1137,6 +1149,7 @@ sub dolog_rlog($$)
 	my $author = "";
 	my $outtext = "";
 	my $removed = 0;
+	my $keywords = "";
 	my %rev_tags;
 
 	# Parser states:
@@ -1153,6 +1166,10 @@ sub dolog_rlog($$)
 			{
 				$file = $1;
 				%rev_tags = ();
+			}
+			elsif (/^keyword substitution: (.*)$/)
+			{
+				$keywords = $1;
 			}
 			elsif (/^symbolic names:/)
 			{
@@ -1244,7 +1261,7 @@ sub dolog_rlog($$)
 					$tagname = $rev_tags{$r} || "UNKNOWN";
 				}
 
-				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2, $tagname, $date);
+				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2, $tagname, $date, $keywords);
 
 				$log = "";
 				$state = 2;
