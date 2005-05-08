@@ -22,6 +22,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.73  2005/05/08 18:41:14  bernie
+#*# Remove noisy debug.
+#*#
 #*# Revision 2.72  2005/04/25 06:35:19  bernie
 #*# Sort headers before implementations.
 #*#
@@ -223,7 +226,8 @@ sub files
 		my ($base_a, $ext_a) = ($name_a =~ /^(.*)\.([^.\/]*)$/);
 		my ($base_b, $ext_b) = ($name_b =~ /^(.*)\.([^.\/]*)$/);
 
-		print "base_a=$base_a, ext_a=$ext_a, base_b=$base_b, ext_b=$ext_b\n";
+		#DEBUG
+		#print "base_a=$base_a, ext_a=$ext_a, base_b=$base_b, ext_b=$ext_b\n";
 
 		# Same basename and non-null extensions?
 		if (($base_a eq $base_b) && $ext_a && $ext_b)
