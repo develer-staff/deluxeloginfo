@@ -22,6 +22,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.74  2005/05/17 22:45:17  bernie
+#*# Fix uninitialized variable warning and enhance readability somewhat.
+#*#
 #*# Revision 2.73  2005/05/08 18:41:14  bernie
 #*# Remove noisy debug.
 #*#
@@ -216,6 +219,16 @@ sub files
 {
 	my @fr = @{shift->{files}};
 
+	# Return base filename and extension
+	sub split_extension($)
+	{
+		my $name = shift;
+		$name =~ /^(.*)\.([^.\/]*)$/;
+		return ($1 || $name, $2 || "");
+	}
+	sub is_header($) { shift =~ /^h|hh|hxx|hpp|h\+\+$/ }
+	sub is_source($) { shift =~ /^c|cpp|cc|cxx|C|c\+\+$/ }
+	 
 	# Fancy sort that makes headers appear before sources, to make code
 	# reviews somewhat easier.
 	sort {
@@ -223,18 +236,18 @@ sub files
 		my $name_b = $b->filename();
 
 		# Split into basename + extension
-		my ($base_a, $ext_a) = ($name_a =~ /^(.*)\.([^.\/]*)$/);
-		my ($base_b, $ext_b) = ($name_b =~ /^(.*)\.([^.\/]*)$/);
+		my ($base_a, $ext_a) = split_extension($name_a);
+		my ($base_b, $ext_b) = split_extension($name_b);
 
 		#DEBUG
 		#print "base_a=$base_a, ext_a=$ext_a, base_b=$base_b, ext_b=$ext_b\n";
 
 		# Same basename and non-null extensions?
-		if (($base_a eq $base_b) && $ext_a && $ext_b)
+		if ($base_a eq $base_b)
 		{
 			# Sort headers before implementations
-			return -1 if ($ext_a =~ /^h|hh|hxx|hpp|h\+\+$/) && ($ext_b =~ /^c|cpp|cc|cxx|C|c\+\+$/);
-			return +1 if ($ext_b =~ /^h|hh|hxx|hpp|h\+\+$/) && ($ext_a =~ /^c|cpp|cc|cxx|C|c\+\+$/);
+			return -1 if is_header($ext_a) && is_source($ext_b);
+			return +1 if is_header($ext_b) && is_source($ext_a);
 		}
 
 		# Sort normally
