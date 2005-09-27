@@ -18,10 +18,17 @@
 #
 #
 # TODO: Coalesce diffs of same file in same changeset with same comment
+# TODO: Use a table for changeset summaries.
+# TODO: Show nr. of files and nr. of lines changed in summary.
+# TODO: Fix truncation message (appears before log)
+# TODO: Add review checklist below summary.
 #
 #
 
 #*# $Log$
+#*# Revision 2.75  2005/09/27 00:41:24  bernie
+#*# Add a few TODO's.
+#*#
 #*# Revision 2.74  2005/05/17 22:45:17  bernie
 #*# Fix uninitialized variable warning and enhance readability somewhat.
 #*#
@@ -533,7 +540,7 @@ sub send_mail(\$\$\$$$$$)
 	}
 	else
 	{
-		$from = "CVS logger <$opt_sender>";
+		$from = "$opt_sender <$opt_sender>";
 	}
 
 	my $newsgroups = "";
