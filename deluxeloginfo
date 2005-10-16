@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
 # $Id$
-# Copyright 2002, 2003, 2004 Bernardo Innocenti <bernie@develer.com>
+# Copyright 2002, 2003, 2004, 2005 Bernardo Innocenti <bernie@develer.com>
 #
 # Dedicated to the memory of Gerry, an extraordinary engineer and
 # a good friend.
@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.76  2005/10/16 13:43:07  bernie
+#*# Rename --cvsroot to --root, --cvsprefix to --prefix, --recipient to --to.
+#*#
 #*# Revision 2.75  2005/09/27 00:41:24  bernie
 #*# Add a few TODO's.
 #*#
@@ -88,8 +91,8 @@ my $opt_html = 1;
 my $opt_ascii = 1;
 my $opt_encoding = 'iso-8859-1';
 my $opt_difflimit = 0;
-my $opt_cvsroot = "";
-my $opt_cvsprefix = "";
+my $opt_root = "";
+my $opt_prefix = "";
 my $opt_module = "";
 my $opt_index = 999;
 my $opt_indexlines = 1;
@@ -651,8 +654,8 @@ sub dodiff($$$$)
 	# Prepend module name to file name
 	$file = "$module/$file" if $module;
 
-	print STDERR "+ cvs -Qfn -d$opt_cvsroot rdiff -kk -u$copts -r$r1 -r$r2 $file\n" if $opt_verbose;
-	open(CVS, "-|") || exec 'cvs', '-Qfn', "-d$opt_cvsroot", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
+	print STDERR "+ cvs -Qfn -d$opt_root rdiff -kk -u$copts -r$r1 -r$r2 $file\n" if $opt_verbose;
+	open(CVS, "-|") || exec 'cvs', '-Qfn', "-d$opt_root", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
 
 	my $cnt = 0;
 	my $hunk = "";
@@ -1152,15 +1155,15 @@ sub dolog_rlog($$)
 	my $stamp;
 
 	#
-	# Extract CVS directory prefix from CVSROOT string
+	# Extract path prefix from the root
 	#
 	my $cvsdir;
 
-	if ($opt_cvsprefix)
+	if ($opt_prefix)
 	{
-		$cvsdir = $opt_cvsprefix;
+		$cvsdir = $opt_prefix;
 	}
-	elsif ($opt_cvsroot and $opt_cvsroot =~ /^:[^:@]*:[^:@]*@[^:@]*:([^:@]+)$/)
+	elsif ($opt_root and $opt_root =~ /^:[^:@]*:[^:@]*@[^:@]*:([^:@]+)$/)
 	{
 		$cvsdir = $1;
 	}
@@ -1177,8 +1180,8 @@ sub dolog_rlog($$)
 			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
 		}
 
-		# Generate unique stamp file name from CVSROOT.
-		$stamp = $opt_cvsroot;
+		# Generate unique stamp file name from repository root.
+		$stamp = $opt_root;
 		$stamp .= "/$module" if $module;
 		$stamp =~ tr|:\/\\@.|_____|;
 		$stamp .= ".stamp";
@@ -1195,7 +1198,7 @@ sub dolog_rlog($$)
 
 		# NOTE: $module may be an empty string, which is fine with CVS
 		#       as it means "fetch the repository root".
-		my @args = ('cvs', '-Qfn', "-d$opt_cvsroot", 'rlog', "-d$dates", "$module");
+		my @args = ('cvs', '-Qfn', "-d$opt_root", 'rlog', "-d$dates", "$module");
 		print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 		open(RLOG, "-|") || exec @args;
 	}
@@ -1386,7 +1389,7 @@ GetOptions(
 	'o|outfile=s'	=> \$opt_outfile,
 	'sender=s'	=> \$opt_sender,
 	'maildomain=s'	=> \$opt_maildomain,
-	'recipient=s'	=> \$opt_recipient,
+	'to|recipient=s'=> \$opt_recipient,
 
 	'by-author'	=> \$opt_byauthor,
 	'diff'		=> \$opt_diff,
@@ -1402,8 +1405,9 @@ GetOptions(
 	'rlog'		=> \$opt_rlog,
 	'stampdir=s'	=> \$opt_stampdir,
 	'keeplogs'	=> \$opt_keeplogs,
-	'cvsroot=s'	=> \$opt_cvsroot,
-	'cvsprefix=s'	=> \$opt_cvsprefix,
+	'root|cvsroot=s'=> \$opt_root,
+	'prefix=s'	=> \$opt_prefix,
+	'prefix|cvsprefix=s' => \$opt_prefix,
 
 	'cvsurl=s'	=> \$opt_cvsurl,
 	'bugurl=s'	=> \$opt_bugurl,
@@ -1438,7 +1442,7 @@ if ($opt_prjtab)
 		$commitlog = "$cvsdir/commitlog.new" if !$opt_rlog;
 
 		# Strip away CVS directory when using rlog
-		$opt_cvsprefix = $cvsdir if ($opt_rlog);
+		$opt_prefix = $cvsdir if ($opt_rlog);
 
 		dolog($prjname, $commitlog, $email);
 	}
@@ -1447,9 +1451,9 @@ if ($opt_prjtab)
 }
 elsif ($opt_rlog)
 {
-	if (!$opt_cvsroot)
+	if (!$opt_root)
 	{
-		print STDERR "ERROR: --rlog specified and no --cvsroot given.\n";
+		print STDERR "ERROR: --rlog specified and no --root given.\n";
 		pod2usage(1);
 	}
 
@@ -1484,13 +1488,13 @@ deluxeloginfo [OPTION]... [FILE]...
  Options for output redirection:
    -o, --outfile=FILE  use FILE as output instead of sending mail
    --sender=ADDR       sender address for CVS logs
-   --maildomain=DOMAIN mail domain for committers (used for To:)
-   --recipient=ADDR    comma-separated list of mail recipients or newsgroups
+   --maildomain=DOMAIN mail domain for committers (used for From:)
+   --to=ADDR           comma-separated list of mail recipients or newsgroups
                        (devtools@lists.develer.com or news:comp.lang.c)
 
  Options for output format:
    --by-author         send one mail for each committer
-   --diff              show diff for commits (requires --cvsroot)
+   --diff              show diff for commits (requires --root)
    --difflimit=N       show up to N lines of diff output
    --index[=N]         output a summary of ChangeSets.  If N is specified,
                        the index is printed only when it contains at least N
@@ -1507,8 +1511,8 @@ deluxeloginfo [OPTION]... [FILE]...
    --stampdir          where to store timestamps for cvs rlog
                        (default: /var/state/loginfo)
    --keeplogs          keep log files instead of rotating them
-   --cvsroot=ROOT      base CVSROOT for use with cvs -d option
-   --cvsprefix=DIR     Repository prefix to strip away in logs
+   --root=ROOT         base repository path for use with cvs -d option
+   --prefix=DIR        Repository prefix to strip away in logs
 
  Options for web links:
    --cvsurl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
