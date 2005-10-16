@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.78  2005/10/16 15:16:43  bernie
+#*# Guess wether --root is a CVS or Subversion repository.
+#*#
 #*# Revision 2.77  2005/10/16 14:27:50  bernie
 #*# --startdate, --enddate: New options.
 #*#
@@ -1061,7 +1064,7 @@ sub process_cslist($$$)
 }
 
 #
-# Helper for dolog_rlog().
+# Helper for cvs_rlog().
 # Parse a CVS revision number and return the best guess for its ancestor.
 #
 sub guess_ancestor($)
@@ -1106,7 +1109,7 @@ sub guess_ancestor($)
 #
 # Process commitlog files
 #
-sub dolog_commitlog($$)
+sub cvs_commitlog($$)
 {
 	my ($module, $commitlog) = @_;
 
@@ -1213,7 +1216,7 @@ sub dolog_commitlog($$)
 #
 # Process cvs rlog output
 #
-sub dolog_rlog($$)
+sub cvs_rlog($$)
 {
 	my ($module, $commitlog) = @_;
 	my $stamp;
@@ -1408,13 +1411,44 @@ sub dolog($$$)
 		print STDERR "...\n";
 	}
 
-	if ($opt_rlog)
+	# Match ":protocol:user@host:path"
+	my $is_cvs = ($opt_root =~ m{^:[^:@]*:[^:@]*@[^:@]*:[^:@]+$/});
+
+	# Match "protocol://path"
+	my $is_svn = ($opt_root =~ m{^[\w\+]+://(\w+/*)+$});
+
+	# None?
+	if (!$is_cvs and !$is_svn)
 	{
-		$cslist = dolog_rlog($module, $commitlog);
+		# Maybe it's a local path, try to determine wether it's CVS
+		$is_cvs = (-d "$opt_root/CVSROOT");
+		$is_svn = (-f "$opt_root/format");
+
+		print STDERR "Root appears to be a CVS local repository.\n" if $opt_verbose and $is_cvs;
+		print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
+	}
+
+	# Both SVN and CVS? Something weird must have happened...
+	if ($is_cvs and $is_svn) { die "Ambiguous root path '$opt_root'" };
+
+	if ($is_cvs)
+	{
+		if ($opt_rlog)
+		{
+			$cslist = cvs_rlog($module, $commitlog);
+		}
+		else
+		{
+			$cslist = cvs_commitlog($module, $commitlog);
+		}
+	}
+	elsif ($is_svn)
+	{
+		die "This is an SVN repository, which is quite unsupported, yet.  Better luck next time!\n";
 	}
 	else
 	{
-		$cslist = dolog_commitlog($module, $commitlog);
+		die "Malformed root path: $opt_root";
 	}
 
 	process_cslist($cslist, $module, $recipient);
@@ -1453,7 +1487,6 @@ GetOptions(
 	'enddate=s'     => \$opt_enddate,
 	'keeplogs'	=> \$opt_keeplogs,
 	'root|cvsroot=s'=> \$opt_root,
-	'prefix=s'	=> \$opt_prefix,
 	'prefix|cvsprefix=s' => \$opt_prefix,
 
 	'cvsurl=s'	=> \$opt_cvsurl,
