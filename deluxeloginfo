@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.77  2005/10/16 14:27:50  bernie
+#*# --startdate, --enddate: New options.
+#*#
 #*# Revision 2.76  2005/10/16 13:43:07  bernie
 #*# Rename --cvsroot to --root, --cvsprefix to --prefix, --recipient to --to.
 #*#
@@ -91,6 +94,8 @@ my $opt_html = 1;
 my $opt_ascii = 1;
 my $opt_encoding = 'iso-8859-1';
 my $opt_difflimit = 0;
+my $opt_startdate;
+my $opt_enddate;
 my $opt_root = "";
 my $opt_prefix = "";
 my $opt_module = "";
@@ -386,7 +391,7 @@ sub create_empty_file($;$$)
 }
 
 #
-# Return date of a file rgument in RFC2822 format (the format CVS understands),
+# Return date of a file argument in RFC2822 format (the format CVS understands),
 # or undef if file couldn't be stat'd.
 #
 sub rfc2822_date($)
@@ -397,6 +402,65 @@ sub rfc2822_date($)
 	my $st = stat(shift) or return undef;
 	return time2str("%a, %d %b %Y %H:%M:%S %z", $st->mtime, "UTC")
 }
+
+#
+# Generate unique filename from the repository root and module.
+#
+sub stamp_filename($)
+{
+	my $module = shift;
+
+	my $stamp = $opt_root;
+	$stamp .= "/$module" if $module;
+	$stamp =~ tr|:\/\\@.|_____|;
+	$stamp .= ".stamp";
+	$stamp = "$opt_stampdir/$stamp";
+
+	return $stamp;
+}
+
+#
+# Return a date range in the format OLD<NEW from the given stamp file.
+#
+sub get_date_range($)
+{
+	my $stamp = shift;
+	my $dates;
+
+	if ($opt_startdate)
+	{
+		$dates = $opt_startdate;
+	}
+	else
+	{
+		# Get timestamp from file, touch it and get filestamp again
+		# (diff since yesterday if no previous stamp file is present).
+		$dates = rfc2822_date($stamp) || "yesterday";
+	}
+
+	$dates .= "<";
+
+	if ($opt_enddate)
+	{
+		$dates .= $opt_enddate;
+	}
+	else
+	{
+		# Create a new file with the current datestamp
+		# (we'll overwrite the old stamp later, only on success)
+		if (! -d $opt_stampdir)
+		{
+			print STDERR "Creating $opt_stampdir since it doesn't exist\n";
+			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
+		}
+		create_empty_file("$stamp.new");
+		$dates .= rfc2822_date("$stamp.new");
+	}
+
+	return $dates;
+}
+
+
 
 sub bugzillate($)
 {
@@ -1174,31 +1238,12 @@ sub dolog_rlog($$)
 	}
 	else
 	{
-		if (! -d $opt_stampdir)
-		{
-			print STDERR "Creating $opt_stampdir since it doesn't exist\n";
-			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
-		}
-
-		# Generate unique stamp file name from repository root.
-		$stamp = $opt_root;
-		$stamp .= "/$module" if $module;
-		$stamp =~ tr|:\/\\@.|_____|;
-		$stamp .= ".stamp";
-		$stamp = "$opt_stampdir/$stamp";
-
-		# Update stamp file
-		create_empty_file("$stamp.new");
-
-		# Get timestamp from file, touch it and get filestamp again
-		# (diff since yesterday if no previous stamp file is present).
-		my $dates = rfc2822_date($stamp) || "yesterday";
-		$dates .= "<";
-		$dates .= rfc2822_date("$stamp.new");
+		$stamp = stamp_filename($module);
+		my $date_range = get_date_range($stamp);
 
 		# NOTE: $module may be an empty string, which is fine with CVS
 		#       as it means "fetch the repository root".
-		my @args = ('cvs', '-Qfn', "-d$opt_root", 'rlog', "-d$dates", "$module");
+		my @args = ('cvs', '-Qfn', "-d$opt_root", 'rlog', "-d$date_range", "$module");
 		print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 		open(RLOG, "-|") || exec @args;
 	}
@@ -1404,6 +1449,8 @@ GetOptions(
 	'prjtab=s'	=> \$opt_prjtab,
 	'rlog'		=> \$opt_rlog,
 	'stampdir=s'	=> \$opt_stampdir,
+	'startdate=s'   => \$opt_startdate,
+	'enddate=s'     => \$opt_enddate,
 	'keeplogs'	=> \$opt_keeplogs,
 	'root|cvsroot=s'=> \$opt_root,
 	'prefix=s'	=> \$opt_prefix,
@@ -1510,6 +1557,8 @@ deluxeloginfo [OPTION]... [FILE]...
    --rlog              use cvs rlog output instead of loginfo files
    --stampdir          where to store timestamps for cvs rlog
                        (default: /var/state/loginfo)
+   --startdate=DATE    specify start date instead of picking it from stamp file
+   --enddate=DATE      specify end date instead of picking it from stamp file
    --keeplogs          keep log files instead of rotating them
    --root=ROOT         base repository path for use with cvs -d option
    --prefix=DIR        Repository prefix to strip away in logs
