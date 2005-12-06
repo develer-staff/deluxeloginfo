@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.79  2005/12/06 07:40:52  bernie
+#*# Initial Subversion support.
+#*#
 #*# Revision 2.78  2005/10/16 15:16:43  bernie
 #*# Guess wether --root is a CVS or Subversion repository.
 #*#
@@ -1261,7 +1264,6 @@ sub cvs_rlog($$)
 	my $directory = "";
 	my $date = "";
 	my $author = "";
-	my $outtext = "";
 	my $removed = 0;
 	my $keywords = "";
 	my %rev_tags;
@@ -1398,6 +1400,129 @@ sub cvs_rlog($$)
 	return $cslist;
 }
 
+
+#
+# Process svn log output
+#
+sub svn_rlog($$)
+{
+	my ($module, $commitlog) = @_;
+	my $stamp;
+
+	#
+	# Extract path prefix from the root
+	#
+	my $repodir;
+
+	if ($opt_prefix)
+	{
+		$repodir = $opt_prefix;
+	}
+	elsif ($opt_root and $opt_root =~ m{^[\w\+]+://((?:[-\w\.]+/*)+)$})
+	{
+		$repodir = $1;
+	}
+
+	if ($commitlog)
+	{
+		open RLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
+	}
+	else
+	{
+		$stamp = stamp_filename($module);
+		my $date_range = get_date_range($stamp);
+
+		# FIXME
+		$date_range="100:900";
+
+		# NOTE: $module may be an empty string, which is fine with SVN
+		#       as it means "fetch the repository root".
+		my @args = ('svn', 'log', '--non-interactive', '--incremental', '-v', "-r$date_range", "$opt_root/$module");
+		print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
+		open(RLOG, "-|") || exec @args;
+	}
+
+	# A nested data structure to hold all collected log data
+	my $cslist = CSList->new;
+
+	# initialize vars with the default values
+	# FIXME: remove these
+	my $r2 = "";
+	my $directory = "";
+	my $removed = 0;
+	my $keywords = "";
+	my %rev_tags;
+
+	my @files;
+	my %ops;
+
+	LOOP: while(<RLOG>)
+	{
+		my $log = "";
+		my @files;
+		my %ops;
+
+		/^---/ or die "Expecting first file header (---), found: '$_'";
+
+		# Last CS ends with ---, but nothing else follows
+		$_ = <RLOG> or last LOOP;
+
+		chomp;
+		my ($rev, $author, $date, $rest) = $_ =~ /^([^\|]+) \| ([^\|]+) \| ([^\|]+) \|(.*)$/
+			or die "Expecting changeset header, got: $_";
+
+		<RLOG> =~ /^Changed paths:/ or die "Expecting 'Changed paths:', found: $_";
+
+		# Collect list of changed paths:
+		#
+		#   M /devtools/trunk/sysadm/learn-spam.sh
+		#   A /devtools/trunk/projman/uac/achievo/remote/class.secure.inc
+		#   D /devtools/trunk/doc/develer_logo.eps
+		#
+		while(<RLOG>)
+		{
+			chomp;
+			last if /^\s*$/; # Give up on empty line
+
+			my ($op, $file);
+			if (($op, $file) = /^\s*([A-Za-z])\s(.*)$/)
+			{
+				push @files, $file;
+				$ops{$file} = $op;
+			}
+			else
+			{
+				die "Expecting changed path entry, got: $_";
+			}
+		}
+
+		# Collect log
+		while(<RLOG>)
+		{
+			last if /^---/;
+			$log .= $_;
+		}
+
+		# Insert collected files
+		foreach my $file (@files)
+		{
+			$cslist->add_file($author, $log, $repodir, $file, $rev, undef, "TAGNAME", $date, $keywords);
+		}
+
+		# We've already eaten the changeset separator
+		redo LOOP if /^---/;
+
+	} # end while(<>)
+
+	close RLOG;
+	die "Reading svn log failed: $!" if $?;
+
+	# Commit date for next log
+	rename "$stamp.new", "$stamp" if ($stamp);
+
+	return $cslist;
+}
+
 sub dolog($$$)
 {
 	my ($module, $commitlog, $recipient) = @_;
@@ -1415,7 +1540,7 @@ sub dolog($$$)
 	my $is_cvs = ($opt_root =~ m{^:[^:@]*:[^:@]*@[^:@]*:[^:@]+$/});
 
 	# Match "protocol://path"
-	my $is_svn = ($opt_root =~ m{^[\w\+]+://(\w+/*)+$});
+	my $is_svn = ($opt_root =~ m{^[\w\+]+://(?:[-\w\.]+/*)+$});
 
 	# None?
 	if (!$is_cvs and !$is_svn)
@@ -1444,7 +1569,10 @@ sub dolog($$$)
 	}
 	elsif ($is_svn)
 	{
-		die "This is an SVN repository, which is quite unsupported, yet.  Better luck next time!\n";
+		print STDERR "This is an SVN repository, which is quite unsupported, yet.  Better luck next time!\n";
+		die "SVN only supported through --rlog" if (!$opt_rlog);
+
+		svn_rlog($module, $commitlog);
 	}
 	else
 	{
