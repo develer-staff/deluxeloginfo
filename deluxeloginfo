@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.80  2005/12/06 08:04:22  bernie
+#*# Prune log; Move size limit message last in diff.
+#*#
 #*# Revision 2.79  2005/12/06 07:40:52  bernie
 #*# Initial Subversion support.
 #*#
@@ -44,35 +47,6 @@
 #*# Revision 2.74  2005/05/17 22:45:17  bernie
 #*# Fix uninitialized variable warning and enhance readability somewhat.
 #*#
-#*# Revision 2.73  2005/05/08 18:41:14  bernie
-#*# Remove noisy debug.
-#*#
-#*# Revision 2.72  2005/04/25 06:35:19  bernie
-#*# Sort headers before implementations.
-#*#
-#*# Revision 2.71  2005/04/25 05:58:21  bernie
-#*# Also ignore Id tag.
-#*#
-#*# Revision 2.70  2005/04/25 05:56:21  bernie
-#*# Ignore boring hunks.
-#*#
-#*# Revision 2.69  2005/04/25 05:26:05  bernie
-#*# Use string compare for CVS keywords.
-#*#
-#*# Revision 2.68  2005/04/25 05:23:25  bernie
-#*# Show binary files and don't try to diff them.
-#*#
-#*# Revision 2.67  2005/04/21 18:49:21  bernie
-#*# bugzillate(): Work harder.
-#*#
-#*# Revision 2.66  2005/02/09 20:59:44  bernie
-#*# Fix UTC/localtime issue; Don't depend on GNU date and touch commands.
-#*#
-#*# Revision 2.65  2005/01/23 02:31:55  bernie
-#*# Add TODO items.
-#*#
-#*# Revision 2.64  2004/12/30 03:01:40  bernie
-#*# --encoding: New option; Strip CVS log.
 
 use strict;
 use Getopt::Long;
@@ -725,13 +699,14 @@ sub dodiff($$$$)
 	$file = "$module/$file" if $module;
 
 	print STDERR "+ cvs -Qfn -d$opt_root rdiff -kk -u$copts -r$r1 -r$r2 $file\n" if $opt_verbose;
-	open(CVS, "-|") || exec 'cvs', '-Qfn', "-d$opt_root", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
+	open(DIFF, "-|") || exec 'cvs', '-Qfn', "-d$opt_root", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
 
 	my $cnt = 0;
 	my $hunk = "";
 	my $interesting = 0;
+	my $size_limit = 0;
 	my $diff = "";
-	while(<CVS>)
+	while(<DIFF>)
 	{
 		next if /^Index:/;
 		$cnt++;
@@ -742,8 +717,8 @@ sub dodiff($$$$)
 			(($cnt > $opt_difflimit) or (length($diff) > $opt_difflimit * 80)))
 		{
 			# Limit exceeded: discard further input and exit
-			$diff .= "*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***\n";
-			while (<CVS>) {}
+			while (<DIFF>) {}
+			$size_limit = 1;
 			last;
 		}
 
@@ -758,15 +733,15 @@ sub dodiff($$$$)
 
 		$hunk .= $_;
 
-		# A change that doesn't only contain CVS output is interesting.
+		# A change that doesn't only contain keywords output is interesting.
 		$interesting++ if /^[\-\+]/
 			&& !/\#\*\#/ && !/\*\#\*/ && !/\$(Version|Revision|Id|Log):/;
 	}
+	close(DIFF);
 
 	# Pick last hunk too
 	$diff .= $hunk if ($interesting);
-
-	close(CVS);
+	$size_limit and $diff .= "*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***";
 	$diff .= "\n" if length($diff);
 
 	return $diff;
@@ -1465,7 +1440,7 @@ sub svn_rlog($$)
 		/^---/ or die "Expecting first file header (---), found: '$_'";
 
 		# Last CS ends with ---, but nothing else follows
-		$_ = <RLOG> or last LOOP;
+		defined($_ = <RLOG>) or last LOOP;
 
 		chomp;
 		my ($rev, $author, $date, $rest) = $_ =~ /^([^\|]+) \| ([^\|]+) \| ([^\|]+) \|(.*)$/
