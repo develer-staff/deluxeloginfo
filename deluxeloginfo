@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.81  2005/12/07 06:42:30  bernie
+#*# New commitlog parser for CVS 1.12.x.
+#*#
 #*# Revision 2.80  2005/12/06 08:04:22  bernie
 #*# Prune log; Move size limit message last in diff.
 #*#
@@ -1106,48 +1109,50 @@ sub cvs_commitlog($$)
 
 	while(<COMMITLOG>)
 	{
-		if ($juststarted)
+		if ($beforelogmsg)
 		{
+			# Skip empty lines
 			next if /^\s*$/;
-			$juststarted = 0;
-			chop;
-			if (/^(\S*) (.*)$/)
+
+			chomp;
+			if    (/^Dir: \s*(.*)$/)    { $directory = $1;   }
+			elsif (/^File: \s*(.+)$/)   { push @files, $1;   }
+			elsif (/^Author: \s*(.+)$/) { $author = $1;      }
+			elsif (/^Date: \s*(.+)$/)   { $date = $1;        }
+			elsif (/^\s*Tag: \s*(\S+)$/){ $tagname = $1;     }
+			elsif (/^Log Message:/)     { $beforelogmsg = 0; }
+			elsif (/^(\S*) (.*)$/ && $juststarted)
 			{
+				# This is for old-style file list (pre CVS 1.12)
 				$directory = $1;
 				$_ = $2;
+
+				# Ignore:
+				#  "dir - New Directory"
+				#  "dir - Imported sources"
+				next if /^- /;
+
+				while (/^([^,]+,(?:NONE|[\d\.]+),(?:NONE|[\d\.]+)) ?(.*)/)
+				{
+					push @files, $1;
+					$_ = $2;
+				}
 			}
-
-			# "directory - New Directory" ?
-			# "directory - Import sources" ?
-			next if /^- /;
-
-			while (/^([^,]+,(?:NONE|[\d\.]+),(?:NONE|[\d\.]+)) ?(.*)/)
-			{
-				push @files, $1;
-				$_ = $2;
-			}
-		}
-		elsif ($beforelogmsg)
-		{
-			next if (/^Update of /);
-			next if (/^In directory /);
-
-			if (/^Author: \s*(\S+)/)  { $author = $1;      }
-			elsif (/^Date: \s*(.+)$/) { $date = $1;        }
-			elsif (/^\s*Tag: (\S+)/)  { $tagname = $1;     }
-			elsif (/^Log Message:/)   { $beforelogmsg = 0; }
+			$juststarted = 0;
 		}
 		else
 		{
 			if (/^---END---$/)
 			{
+				# Remove newlines at end of log
 				while (chomp $logmessage) {}
 
 				foreach my $f (@files)
 				{
-					next if (!length($f));
+					next if !length($f);
+					next if $f =~ /^- /; # skip "- New Directory" or "- Imported Sources"
 					my ($file, $r1, $r2) = $f =~ /(.+),(.+),(.+)/;
-					my $relfile = "$directory/$file";
+					my $relfile = $directory ? "$directory/$file" : $file;
 					# FIXME: no way to tell if a file is binary?
 					$cslist->add_file($author, $logmessage, "", $relfile, $r1, $r2, $tagname, $date, 'kv');
 				}
@@ -1502,6 +1507,7 @@ sub dolog($$$)
 {
 	my ($module, $commitlog, $recipient) = @_;
 	my $cslist;
+	my ($is_cvs, $is_svn);
 
 	if ($opt_verbose)
 	{
@@ -1511,31 +1517,40 @@ sub dolog($$$)
 		print STDERR "...\n";
 	}
 
-	# Match ":protocol:user@host:path"
-	my $is_cvs = ($opt_root =~ m{^:[^:@]*:[^:@]*@[^:@]*:[^:@]+$/});
-
-	# Match "protocol://path"
-	my $is_svn = ($opt_root =~ m{^[\w\+]+://(?:[-\w\.]+/*)+$});
-
-	# None?
-	if (!$is_cvs and !$is_svn)
+	if ($opt_root)
 	{
-		# Maybe it's a local path, try to determine wether it's CVS
-		$is_cvs = (-d "$opt_root/CVSROOT");
-		$is_svn = (-f "$opt_root/format");
+		# Match ":protocol:user@host:path"
+		$is_cvs = ($opt_root =~ m{^:[^:@]*:[^:@]*@[^:@]*:[^:@]+$/});
 
-		print STDERR "Root appears to be a CVS local repository.\n" if $opt_verbose and $is_cvs;
-		print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
+		# Match "protocol://path"
+		$is_svn = ($opt_root =~ m{^[\w\+]+://(?:[-\w\.]+/*)+$});
+
+		# None? Try to guess from local repository
+		if (!$is_cvs and !$is_svn)
+		{
+			# Maybe it's a local path, try to determine whether it's CVS or SVN
+			$is_cvs = (-d "$opt_root/CVSROOT");
+			$is_svn = (-f "$opt_root/format");
+
+			print STDERR "Root appears to be a CVS local repository.\n" if $opt_verbose and $is_cvs;
+			print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
+		}
+
+		# Both SVN and CVS? Something weird must have happened...
+		if ($is_cvs and $is_svn) { die "Ambiguous root path '$opt_root'" };
 	}
-
-	# Both SVN and CVS? Something weird must have happened...
-	if ($is_cvs and $is_svn) { die "Ambiguous root path '$opt_root'" };
+	else
+	{
+		# For now, we only support CVS with commitlog
+		$is_cvs = 1;
+		print STDERR "Assuming CVS since no --root given.\n" if $opt_verbose;
+	}
 
 	if ($is_cvs)
 	{
 		if ($opt_rlog)
 		{
-			$cslist = cvs_rlog($module, $commitlog);
+			$cslist = $opt_rlog ? cvs_rlog($module, $commitlog) : cvs_commitlog($module, $commitlog);
 		}
 		else
 		{
@@ -1711,9 +1726,14 @@ deluxeloginfo [OPTION]... [FILE]...
 
 =head1 USAGE
 
-Add this line to your CVSROOT/loginfo
+Add this line to your CVSROOT/loginfo:
 
+   # For CVS 1.11.x
    ALL (echo %{sVv}; echo "Author: $USER"; cat ; echo "---END---") >> $CVSROOT/commitlog.new
+
+   # For CVS 1.12.x
+   ALL perl -e 'print "Author: ".shift()."\nDir: ".shift()."\n"; while(@ARGV) { print "File: ".shift().",".shift().",".shift()."\n" } while(<STDIN>) { print }; print "---END---\n"' $USER %p %{sVv} >> $CVSROOT/commitlog.new
+
 
 Put something like this in your crontab:
 
