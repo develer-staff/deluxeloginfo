@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.83  2006/01/24 23:09:58  bernie
+#*# Subversion diffs almost there.
+#*#
 #*# Revision 2.82  2005/12/07 06:51:36  bernie
 #*# Fix typo in CVS autodetection for remote repos.
 #*#
@@ -88,6 +91,8 @@ my $opt_module = "";
 my $opt_index = 999;
 my $opt_indexlines = 1;
 
+# Globals
+my ($is_cvs, $is_svn);
 
 #
 # Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
@@ -386,7 +391,7 @@ sub rfc2822_date($)
 	use File::stat;
 
 	my $st = stat(shift) or return undef;
-	return time2str("%a, %d %b %Y %H:%M:%S %z", $st->mtime, "UTC")
+	return time2str('%a, %d %b %Y %H:%M:%S %z', $st->mtime, 'UTC')
 }
 
 #
@@ -408,7 +413,7 @@ sub stamp_filename($)
 #
 # Return a date range in the format OLD<NEW from the given stamp file.
 #
-sub get_date_range($)
+sub cvs_date_range($)
 {
 	my $stamp = shift;
 	my $dates;
@@ -446,6 +451,56 @@ sub get_date_range($)
 	return $dates;
 }
 
+sub svn_date($)
+{
+	use Date::Format;
+	use File::stat;
+
+	my $st = stat(shift) or return undef;
+	return time2str('{%04Y-%02b-%02d %02H:%02M:%02S %z}', $st->mtime, "UTC")
+}
+
+#
+# Return an SVN date or revision range in the format "{OLD}:{NEW}" or
+# "R1:R2" from the given stamp file.
+#
+sub svn_date_range($)
+{
+	my $stamp = shift;
+	my $dates;
+
+	if ($opt_startdate)
+	{
+		$dates = "{$opt_startdate}";
+	}
+	else
+	{
+		# Get timestamp from file, touch it and get filestamp again
+		# (diff since yesterday if no previous stamp file is present).
+		$dates = svn_date($stamp) || 'PREV';
+	}
+
+	$dates .= ":";
+
+	if ($opt_enddate)
+	{
+		$dates .= '{' . $opt_enddate . '}';
+	}
+	else
+	{
+		# Create a new file with the current datestamp
+		# (we'll overwrite the old stamp later, only on success)
+		if (! -d $opt_stampdir)
+		{
+			print STDERR "Creating $opt_stampdir since it doesn't exist\n";
+			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
+		}
+		create_empty_file("$stamp.new");
+		$dates .= svn_date("$stamp.new");
+	}
+
+	return $dates;
+}
 
 
 sub bugzillate($)
@@ -688,24 +743,33 @@ sub dodiff($$$$)
 	my ($module, $file, $r1, $r2) = @_;
 	my $copts = "";
 
-	# Avoid diffs for files added or removed from CVS
-	#return "" if (($r1 eq "NONE") or ($r2 eq "NONE"));
-
-	# Avoid diffs for files removed from CVS
-	return "" if ($r2 eq "NONE");
-
-	# Workaround for first revision of added files (does only work with rdiff!)
-	$r1 = "1.0" if ($r1 eq "NONE");
-
 	# Regex to match source files (doesn't work with cvs rdiff)
 	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)$';
 	#$copts = "dpbB" if ($file =~ /$srcfile/);
 
-	# Prepend module name to file name
-	$file = "$module/$file" if $module;
+	# Avoid diffs for removed files
+	return "" if ($r2 eq "NONE");
 
-	print STDERR "+ cvs -Qfn -d$opt_root rdiff -kk -u$copts -r$r1 -r$r2 $file\n" if $opt_verbose;
-	open(DIFF, "-|") || exec 'cvs', '-Qfn', "-d$opt_root", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file;
+	my @args;
+	if ($is_cvs)
+	{
+		# Prepend module name to file name
+		$file = "$module/$file" if $module;
+
+		# Workaround for first revision of added files (does only work with rdiff!)
+		$r1 = "1.0" if ($r1 eq "NONE");
+
+		@args = ('cvs', '-Qfn', "-d$opt_root", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file);
+	}
+	elsif ($is_svn)
+	{
+		$r1 = ($r2 - 1) if ($r1 eq "NONE");
+
+		@args = ('svn', 'diff', "-r$r1:$r2", "$opt_root/$file");
+	}
+
+	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
+	open(DIFF, "-|") || exec @args;
 
 	my $cnt = 0;
 	my $hunk = "";
@@ -1228,7 +1292,7 @@ sub cvs_rlog($$)
 	else
 	{
 		$stamp = stamp_filename($module);
-		my $date_range = get_date_range($stamp);
+		my $date_range = cvs_date_range($stamp);
 
 		# NOTE: $module may be an empty string, which is fine with CVS
 		#       as it means "fetch the repository root".
@@ -1413,10 +1477,7 @@ sub svn_rlog($$)
 	else
 	{
 		$stamp = stamp_filename($module);
-		my $date_range = get_date_range($stamp);
-
-		# FIXME
-		$date_range="100:900";
+		my $date_range = svn_date_range($stamp);
 
 		# NOTE: $module may be an empty string, which is fine with SVN
 		#       as it means "fetch the repository root".
@@ -1427,14 +1488,6 @@ sub svn_rlog($$)
 
 	# A nested data structure to hold all collected log data
 	my $cslist = CSList->new;
-
-	# initialize vars with the default values
-	# FIXME: remove these
-	my $r2 = "";
-	my $directory = "";
-	my $removed = 0;
-	my $keywords = "";
-	my %rev_tags;
 
 	my @files;
 	my %ops;
@@ -1451,8 +1504,21 @@ sub svn_rlog($$)
 		defined($_ = <RLOG>) or last LOOP;
 
 		chomp;
+
+		# Parse changeset header:
+		# 
+		# r5189 | woody | 2006-01-19 22:50:09 +0100 (Thu, 19 Jan 2006) | 1 line
+		#
 		my ($rev, $author, $date, $rest) = $_ =~ /^([^\|]+) \| ([^\|]+) \| ([^\|]+) \|(.*)$/
 			or die "Expecting changeset header, got: $_";
+
+		# Compute previous version
+		my $prev;
+		if ($rev =~ /r(\d+)/)
+		{
+			$rev = $1;
+			$prev = $1 - 1;
+		}
 
 		<RLOG> =~ /^Changed paths:/ or die "Expecting 'Changed paths:', found: $_";
 
@@ -1489,11 +1555,18 @@ sub svn_rlog($$)
 		# Insert collected files
 		foreach my $file (@files)
 		{
-			$cslist->add_file($author, $log, $repodir, $file, $rev, undef, "TAGNAME", $date, $keywords);
+			# FIXME: support these
+			my $branch = "";
+			my $keywords = "";
+
+			$cslist->add_file($author, $log, $repodir, $file,
+				($ops{$file} eq "A" ? undef : $rev),
+				($ops{$file} eq "R" ? undef : $prev),
+				$branch, $date, $keywords);
 		}
 
 		# We've already eaten the changeset separator
-		redo LOOP if /^---/;
+		redo LOOP if $_ and /^---/;
 
 	} # end while(<>)
 
@@ -1510,7 +1583,6 @@ sub dolog($$$)
 {
 	my ($module, $commitlog, $recipient) = @_;
 	my $cslist;
-	my ($is_cvs, $is_svn);
 
 	if ($opt_verbose)
 	{
@@ -1526,7 +1598,7 @@ sub dolog($$$)
 		$is_cvs = ($opt_root =~ m{^:[^:@]*:[^:@]*@[^:@]*:[^:@]+$});
 
 		# Match "protocol://path"
-		$is_svn = ($opt_root =~ m{^[\w\+]+://(?:[-\w\.]+/*)+$});
+		$is_svn = ($opt_root =~ m{^[\w\+]+://(/|)(?:[-\w\.]+/*)+$});
 
 		# None? Try to guess from local repository
 		if (!$is_cvs and !$is_svn)
@@ -1565,7 +1637,7 @@ sub dolog($$$)
 		print STDERR "This is an SVN repository, which is quite unsupported, yet.  Better luck next time!\n";
 		die "SVN only supported through --rlog" if (!$opt_rlog);
 
-		svn_rlog($module, $commitlog);
+		$cslist = svn_rlog($module, $commitlog);
 	}
 	else
 	{
