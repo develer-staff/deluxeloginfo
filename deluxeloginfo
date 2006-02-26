@@ -26,6 +26,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.84  2006/02/26 21:43:23  bernie
+#*# Cleanup and bugfix Subersion support.
+#*#
 #*# Revision 2.83  2006/01/24 23:09:58  bernie
 #*# Subversion diffs almost there.
 #*#
@@ -80,7 +83,7 @@ my $opt_cvsurl = "";
 my $opt_bugurl = "";
 my $opt_diff;
 my $opt_html = 1;
-my $opt_ascii = 1;
+my $opt_text = 1;
 my $opt_encoding = 'iso-8859-1';
 my $opt_difflimit = 0;
 my $opt_startdate;
@@ -118,7 +121,7 @@ package FileRev;
 #
 # Construct a FileRev object
 #
-# SYNOPSIS: FileRev->new(cvsdir, filename, r1, r2, tag, date, keywords)
+# SYNOPSIS: FileRev->new(repodir, filename, r1, r2, tag, date, keywords)
 #
 sub new($$$$$$$)
 {
@@ -126,7 +129,7 @@ sub new($$$$$$$)
 	# Collect arguments and create instance
 	#
 	my $class = shift;
-	my $cvsdir = shift;
+	my $repodir = shift;
 	my $filename = shift;
 	my $self = {
 		r1 => shift,
@@ -145,7 +148,7 @@ sub new($$$$$$$)
 	$filename =~ s|,v$||;
 
 	# Prune CVS repository path from filename
-	$filename =~ s|^$cvsdir/|| if $cvsdir;
+	$filename =~ s|^$repodir/|| if $repodir;
 
 	# Prune Attic directory from filename
 	$filename =~ s|/Attic/|/|;
@@ -309,7 +312,7 @@ sub add_filerev
 #
 # Construct a FileRev entry and add it with CSList::add_filerev()
 #
-# SYNOPSIS: cs_list->add_file(author, log, cvsdir, file, r1, r2, tagname, date, keywords)
+# SYNOPSIS: cs_list->add_file(author, log, repodir, file, r1, r2, tagname, date, keywords)
 #
 sub add_file
 {
@@ -708,12 +711,12 @@ sub send_mail(\$\$\$$$$$)
 	# End of mail headers
 	print MAIL "\n";
 
-	if ($opt_ascii && $opt_html)
+	if ($opt_text && $opt_html)
 	{
 		mime_part(*MAIL, 'text/plain');
 	}
 
-	if ($opt_ascii)
+	if ($opt_text)
 	{
 		print MAIL unhtml($summary);
 		print MAIL $$text;
@@ -742,6 +745,7 @@ sub dodiff($$$$)
 {
 	my ($module, $file, $r1, $r2) = @_;
 	my $copts = "";
+	my $is_diff = 1;
 
 	# Regex to match source files (doesn't work with cvs rdiff)
 	#my $srcfile = '\.(cpp|cc|cxx|C|c\+\+|c|l|y|h|hh|hxx|hpp|h\+\+|pl|jsp|java|py|sh)$';
@@ -763,9 +767,16 @@ sub dodiff($$$$)
 	}
 	elsif ($is_svn)
 	{
-		$r1 = ($r2 - 1) if ($r1 eq "NONE");
-
-		@args = ('svn', 'diff', "-r$r1:$r2", "$opt_root/$file");
+		
+		if ($r1 eq "NONE")
+		{
+			@args = ('svn', 'cat', "-r$r2", "$opt_root/$file\@$r2");
+			$is_diff = 0;
+		}
+		else
+		{
+			@args = ('svn', 'diff', "-r$r1:$r2", "$opt_root/$file\@$r2");
+		}
 	}
 
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
@@ -776,6 +787,14 @@ sub dodiff($$$$)
 	my $interesting = 0;
 	my $size_limit = 0;
 	my $diff = "";
+
+	if (!$is_diff)
+	{
+		$hunk .= ("=" x 67) . "\n";
+		$hunk .= "--- /dev/null\n";
+		$hunk .= "+++ $file\t(revision $r2)\n";
+	}
+
 	while(<DIFF>)
 	{
 		next if /^Index:/;
@@ -792,25 +811,36 @@ sub dodiff($$$$)
 			last;
 		}
 
-		# Begin of a new hunk?
-		if (/^@@/)
+		if ($is_diff)
 		{
-			# Consider the hunk only if it wasn't boring
-			$diff .= $hunk if $interesting;
-			$hunk = "";
-			$interesting = 0;
+			# Begin of a new hunk?
+			if (/^@@/)
+			{
+				# Consider the hunk only if it wasn't boring
+				$diff .= $hunk if $interesting;
+				$hunk = "";
+				$interesting = 0;
+			}
+
+			# A change that doesn't only contain keywords output is interesting.
+			$interesting++ if /^[\-\+]/
+				&& !/\#\*\#/ && !/\*\#\*/ && !/\$(Version|Revision|Id|Log):/;
+
+			# Subversion doesn't print the full pathname with remote diffs
+			s{(\+\+\+|---) [^/]+\t(.*revision.*)}{$1 $file\t$2};
+		}
+		else
+		{
+			# Make it look like a diff
+			$hunk .= "+ ";
 		}
 
 		$hunk .= $_;
-
-		# A change that doesn't only contain keywords output is interesting.
-		$interesting++ if /^[\-\+]/
-			&& !/\#\*\#/ && !/\*\#\*/ && !/\$(Version|Revision|Id|Log):/;
 	}
 	close(DIFF);
 
 	# Pick last hunk too
-	$diff .= $hunk if ($interesting);
+	$diff .= $hunk if ($interesting || !$is_diff);
 	$size_limit and $diff .= "*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***";
 	$diff .= "\n" if length($diff);
 
@@ -880,6 +910,9 @@ sub diff2html($)
 
 		# Mark hidden whitespace before TABs
 		s/([^ ])( +)\t/$1<span style="background-color: #FF0000">$2<\/span>\t/;
+
+		# Replace long runs of '===' with a horizontal ruler
+		s#^={30,}#<hr />#;
 
 		SWITCH: {
 			/^(--- |\+\+\+ |diff)/ && do { $newstyle = "006600"; last SWITCH };
@@ -1280,10 +1313,17 @@ sub cvs_rlog($$)
 	{
 		$cvsdir = $opt_prefix;
 	}
-	elsif ($opt_root and $opt_root =~ /^:[^:@]*:[^:@]*@[^:@]*:([^:@]+)$/)
+	elsif ($opt_root)
 	{
-		$cvsdir = $1;
+		if ($opt_root =~ /^\//) {
+			$cvsdir = "$opt_root/$module";
+		}
+		elsif ($opt_root =~ /^:[^:@]*:[^:@]*@[^:@]*:([^:@]+)$/)
+		{
+			$cvsdir = $1;
+		}
 	}
+	print STDERR "Reading rlog with cvsdir='$cvsdir'\n" if ($opt_verbose);
 
 	if ($commitlog)
 	{
@@ -1465,10 +1505,14 @@ sub svn_rlog($$)
 	{
 		$repodir = $opt_prefix;
 	}
-	elsif ($opt_root and $opt_root =~ m{^[\w\+]+://((?:[-\w\.]+/*)+)$})
+	else
 	{
-		$repodir = $1;
+		$repodir = $module;
 	}
+#	elsif ($opt_root and $opt_root =~ m{^[\w\+]+://((?:[-\w\.]+/*)+)$})
+#	{
+#		$repodir = $1;
+#	}
 
 	if ($commitlog)
 	{
@@ -1560,8 +1604,8 @@ sub svn_rlog($$)
 			my $keywords = "";
 
 			$cslist->add_file($author, $log, $repodir, $file,
-				($ops{$file} eq "A" ? undef : $rev),
-				($ops{$file} eq "R" ? undef : $prev),
+				($ops{$file} eq "A" ? undef : $prev),
+				($ops{$file} eq "R" ? undef : $rev),
 				$branch, $date, $keywords);
 		}
 
@@ -1634,9 +1678,9 @@ sub dolog($$$)
 	}
 	elsif ($is_svn)
 	{
-		print STDERR "This is an SVN repository, which is quite unsupported, yet.  Better luck next time!\n";
-		die "SVN only supported through --rlog" if (!$opt_rlog);
+		$opt_rlog or die "SVN only supported through --rlog";
 
+		# FIXME: use svn info to infer $opt_module or die if --root does not match repository root
 		$cslist = svn_rlog($module, $commitlog);
 	}
 	else
@@ -1669,7 +1713,7 @@ GetOptions(
 	'index:n'	=> \$opt_index,
 	'index-lines:n'	=> \$opt_indexlines,
 	'html!'         => \$opt_html,
-	'ascii!'        => \$opt_ascii,
+	'text|ascii!'   => \$opt_text,
 	'encoding=s'	=> \$opt_encoding,
 
 	'module=s'	=> \$opt_module,
@@ -1709,13 +1753,26 @@ if ($opt_prjtab)
 		next if /^#/ or /^\s*$/;
 
 		# NOTE: email hogs all remaining fields
-		my ($prjname, $cvsdir, $email) = split(' ', $_, 3);
+		my ($prjname, $root, $email) = split(' ', $_, 3);
+
+		if (!$prjname || !$root || !$email)
+		{
+			die "$opt_prjtab:$.: Illegal prjtab format.";
+		}
 
 		my $commitlog;
-		$commitlog = "$cvsdir/commitlog.new" if !$opt_rlog;
+		if ($opt_rlog)
+		{
+			# Use directory as repository root, unless overridden by user
+			$opt_root = $root;
 
-		# Strip away CVS directory when using rlog
-		$opt_prefix = $cvsdir if ($opt_rlog);
+			# Strip away repository path
+			#$opt_prefix = "$root/$prjname";
+		}
+		else
+		{
+			$commitlog = "$root/commitlog.new" if !$opt_rlog;
+		}
 
 		dolog($prjname, $commitlog, $email);
 	}
@@ -1730,7 +1787,7 @@ elsif ($opt_rlog)
 		pod2usage(1);
 	}
 
-	# Fetch from CVS
+	# Fetch from SCM
 	dolog($opt_module, undef, $opt_recipient);
 }
 else
@@ -1752,15 +1809,27 @@ __END__
 
 =head1 NAME
 
-deluxeloginfo - Process CVS commit logs to generate e-mail report with hyperlinks to ViewCVS and Bugzilla
+deluxeloginfo - Generate commit logs for CVS or SVN
 
 =head1 SYNOPSIS
 
 deluxeloginfo [OPTION]... [FILE]...
 
+ Options to specify the repository:
+   --root=ROOT         base repository path
+   --prefix=DIR        Repository prefix to strip away in logs
+   --module=NAME       CVS module or subtree to work on
+   --prjtab=FILE       use FILE as a prjtab file to find repositories
+   --rlog              use remote repository access instead of loginfo files
+   --stampdir          where to store timestamps for cvs rlog and svn log
+                       (default: /var/state/loginfo)
+   --startdate=DATE    specify start date instead of picking it from stamp file
+   --enddate=DATE      specify end date instead of picking it from stamp file
+   --keeplogs          keep log files instead of rotating them
+
  Options for output redirection:
    -o, --outfile=FILE  use FILE as output instead of sending mail
-   --sender=ADDR       sender address for CVS logs
+   --sender=ADDR       sender e-mail address for log messages
    --maildomain=DOMAIN mail domain for committers (used for From:)
    --to=ADDR           comma-separated list of mail recipients or newsgroups
                        (devtools@lists.develer.com or news:comp.lang.c)
@@ -1773,21 +1842,9 @@ deluxeloginfo [OPTION]... [FILE]...
                        the index is printed only when it contains at least N
 		       ChangeSets. Set to 0 to always print the index
    --index-lines=N     Number of log lines in an index entry (default: 1)
-   --noascii           Disable ASCII output
+   --notxt             Disable text output
    --nohtml            Disable HTML output
    --encoding=ENC      Set mail text encoding to ENC (default: iso-8859-1)
-
- Options to specify the repository:
-   --module=NAME       CVS module to work on
-   --prjtab=FILE       use FILE as a prjtab file to find CVS repositories
-   --rlog              use cvs rlog output instead of loginfo files
-   --stampdir          where to store timestamps for cvs rlog
-                       (default: /var/state/loginfo)
-   --startdate=DATE    specify start date instead of picking it from stamp file
-   --enddate=DATE      specify end date instead of picking it from stamp file
-   --keeplogs          keep log files instead of rotating them
-   --root=ROOT         base repository path for use with cvs -d option
-   --prefix=DIR        Repository prefix to strip away in logs
 
  Options for web links:
    --cvsurl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
@@ -1820,11 +1877,11 @@ Put something like this in your crontab:
 If you have multiple CVS repositories, you can process all them at once
 by setting up a project description file like this:
  
-   #NAME	CVSROOT					RECIPIENTS
-   kde		/cvs/kde				kde-devel@lists.kde.org
+   #NAME	ROOT					RECIPIENTS
+   kde		/repos/kde				kde-devel@lists.kde.org
    gnome	/cvs/gnome				gnome-devel@lists.gnome.org
    uclinux	:ext:bernie@cvs.uclinux.org:/cvsroot	uclinux-dev@uclinux.org
-   gcc		:pserver:bernie@gcc.gnu.org:/cvs/gcc	news:comp.lang.c++,gnu.misc.discuss
+   gcc		svn+ssh://gcc.gnu.org/svn/gcc		news:comp.lang.c++,gnu.misc.discuss
 
 Multiple recipients can be specified separated by commas.
 Prefix the address list with "news:" to post to newsgroups.
