@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 #
 # $Id$
-# Copyright 2002, 2003, 2004, 2005 Bernardo Innocenti <bernie@develer.com>
+# Copyright 2002, 2003, 2004, 2005, 2006 Bernardo Innocenti <bernie@develer.com>
 #
 # Dedicated to the memory of Gerry, an extraordinary engineer and
 # a good friend.
@@ -20,12 +20,14 @@
 # TODO: Coalesce diffs of same file in same changeset with same comment
 # TODO: Use a table for changeset summaries.
 # TODO: Show nr. of files and nr. of lines changed in summary.
-# TODO: Fix truncation message (appears before log)
 # TODO: Add review checklist below summary.
 #
 #
 
 #*# $Log$
+#*# Revision 2.85  2006/02/27 22:52:30  bernie
+#*# Fix SVN date formatting.
+#*#
 #*# Revision 2.84  2006/02/26 21:43:23  bernie
 #*# Cleanup and bugfix Subersion support.
 #*#
@@ -460,7 +462,7 @@ sub svn_date($)
 	use File::stat;
 
 	my $st = stat(shift) or return undef;
-	return time2str('{%04Y-%02b-%02d %02H:%02M:%02S %z}', $st->mtime, "UTC")
+	return time2str('{%Y-%m-%d %H:%M:%S %z}', $st->mtime, "UTC")
 }
 
 #
