@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.86  2006/02/28 03:26:54  bernie
+#*# Process SVN logs since the previous day if no timestamp is present.
+#*#
 #*# Revision 2.85  2006/02/27 22:52:30  bernie
 #*# Fix SVN date formatting.
 #*#
@@ -461,8 +464,16 @@ sub svn_date($)
 	use Date::Format;
 	use File::stat;
 
-	my $st = stat(shift) or return undef;
-	return time2str('{%Y-%m-%d %H:%M:%S %z}', $st->mtime, "UTC")
+	my $mtime;
+	if (my $st = stat(shift))
+	{
+		$mtime = $st->mtime;
+	}
+	else
+	{
+		$mtime = time - 60*60*24;
+	}
+	return time2str('{%Y-%m-%d %H:%M:%S %z}', $mtime, "UTC")
 }
 
 #
@@ -480,9 +491,10 @@ sub svn_date_range($)
 	}
 	else
 	{
+
 		# Get timestamp from file, touch it and get filestamp again
 		# (diff since yesterday if no previous stamp file is present).
-		$dates = svn_date($stamp) || 'PREV';
+		$dates = svn_date($stamp);
 	}
 
 	$dates .= ":";
