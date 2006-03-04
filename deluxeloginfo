@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.87  2006/03/04 10:35:37  bernie
+#*# Fix subject line.
+#*#
 #*# Revision 2.86  2006/02/28 03:26:54  bernie
 #*# Process SVN logs since the previous day if no timestamp is present.
 #*#
@@ -646,9 +649,7 @@ sub send_mail(\$\$\$$$$$)
 	}
 
 	# Build subject line
-	my $subject = "CVS commit";
-	$subject .= " by $author" if ($author);
-	$subject .= " log" if (!$author);
+	my $subject = $author ? "changes by $author" : "change log";
 	$subject .= " for $module" if ($module);
 	{
 		# Compute current time
