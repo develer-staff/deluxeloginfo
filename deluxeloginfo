@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.88  2006/03/12 13:33:51  bernie
+#*# Fix off by one bug in svn log.
+#*#
 #*# Revision 2.87  2006/03/04 10:35:37  bernie
 #*# Fix subject line.
 #*#
@@ -1510,6 +1513,7 @@ sub svn_rlog($$)
 {
 	my ($module, $commitlog) = @_;
 	my $stamp;
+	my $skip_first_cs;
 
 	#
 	# Extract path prefix from the root
@@ -1537,6 +1541,12 @@ sub svn_rlog($$)
 	{
 		$stamp = stamp_filename($module);
 		my $date_range = svn_date_range($stamp);
+
+		# This is needed to workaround peculiar SVN date handling.
+		# The first revision we get is actually outside the specified
+		# range.
+		#
+		$skip_first_cs = 1;
 
 		# NOTE: $module may be an empty string, which is fine with SVN
 		#       as it means "fetch the repository root".
@@ -1611,6 +1621,13 @@ sub svn_rlog($$)
 			$log .= $_;
 		}
 
+		# Skip first changeset entry
+		if ($skip_first_cs)
+		{
+			$skip_first_cs = 0;
+			next LOOP;
+		}
+		
 		# Insert collected files
 		foreach my $file (@files)
 		{
