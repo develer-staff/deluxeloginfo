@@ -25,8 +25,8 @@
 #
 
 #*# $Log$
-#*# Revision 2.88  2006/03/12 13:33:51  bernie
-#*# Fix off by one bug in svn log.
+#*# Revision 2.89  2006/03/17 21:07:18  bernie
+#*# Fix workaround for skipping first CS in SVN.
 #*#
 #*# Revision 2.87  2006/03/04 10:35:37  bernie
 #*# Fix subject line.
@@ -1625,20 +1625,21 @@ sub svn_rlog($$)
 		if ($skip_first_cs)
 		{
 			$skip_first_cs = 0;
-			next LOOP;
 		}
-		
-		# Insert collected files
-		foreach my $file (@files)
+		else
 		{
-			# FIXME: support these
-			my $branch = "";
-			my $keywords = "";
+			# Insert collected files
+			foreach my $file (@files)
+			{
+				# FIXME: support these
+				my $branch = "";
+				my $keywords = "";
 
-			$cslist->add_file($author, $log, $repodir, $file,
-				($ops{$file} eq "A" ? undef : $prev),
-				($ops{$file} eq "R" ? undef : $rev),
-				$branch, $date, $keywords);
+				$cslist->add_file($author, $log, $repodir, $file,
+					($ops{$file} eq "A" ? undef : $prev),
+					($ops{$file} eq "R" ? undef : $rev),
+					$branch, $date, $keywords);
+			}
 		}
 
 		# We've already eaten the changeset separator
