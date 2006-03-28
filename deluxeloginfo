@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.90  2006/03/28 13:04:44  bernie
+#*# Fix SVN paths containing a username.
+#*#
 #*# Revision 2.89  2006/03/17 21:07:18  bernie
 #*# Fix workaround for skipping first CS in SVN.
 #*#
@@ -1675,7 +1678,7 @@ sub dolog($$$)
 		$is_cvs = ($opt_root =~ m{^:[^:@]*:[^:@]*@[^:@]*:[^:@]+$});
 
 		# Match "protocol://path"
-		$is_svn = ($opt_root =~ m{^[\w\+]+://(/|)(?:[-\w\.]+/*)+$});
+		$is_svn = ($opt_root =~ m{^[\w\+]+://(\w+@|)(/|)(?:[-\w\.]+/*)+$});
 
 		# None? Try to guess from local repository
 		if (!$is_cvs and !$is_svn)
