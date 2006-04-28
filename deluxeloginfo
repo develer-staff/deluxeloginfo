@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.91  2006/04/28 15:01:27  bernie
+#*# Use utf8 by default.
+#*#
 #*# Revision 2.90  2006/03/28 13:04:44  bernie
 #*# Fix SVN paths containing a username.
 #*#
@@ -1732,10 +1735,13 @@ sub dolog($$$)
 #
 
 # Make sure that CVS doesn't use "/root" as $HOME
-delete $ENV{"HOME"};
+delete $ENV{'HOME'};
+
+# Make sure SVN and CVS both run with utf8 encoding
+$ENV{'LANG'} = 'en_US.UTF-8';
 
 # Use SSH by default with the :ext: protocol
-$ENV{"CVS_RSH"} = "ssh";
+$ENV{'CVS_RSH'} = "ssh";
 
 GetOptions(
 	'o|outfile=s'	=> \$opt_outfile,
