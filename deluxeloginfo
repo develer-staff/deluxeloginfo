@@ -25,6 +25,10 @@
 #
 
 #*# $Log$
+#*# Revision 2.92  2006/05/10 12:15:45  rasky
+#*# Fix detection of removed files with SVN (svn log uses 'D').
+#*# Fix the spelling of an option in the help screen.
+#*#
 #*# Revision 2.91  2006/04/28 15:01:27  bernie
 #*# Use utf8 by default.
 #*#
@@ -1069,8 +1073,11 @@ sub format_output($$$\$)
 
 		# Guess CVS operation from revisions pair
 		my $state = 'M';
-		$state = 'R' if ($r2 eq "NONE");
-		$state = 'A' if ($r1 eq "NONE");
+		my $added_state = 'A';
+		my $removed_state = $is_svn ? 'D' : 'R';
+		
+		$state = $removed_state if ($r2 eq "NONE");
+		$state = $added_state if ($r1 eq "NONE");
 
 		# Find out a "good" revision to link to
 		my $rev = ($r2 eq "NONE") ? $r1 : $r2;
@@ -1643,7 +1650,7 @@ sub svn_rlog($$)
 
 				$cslist->add_file($author, $log, $repodir, $file,
 					($ops{$file} eq "A" ? undef : $prev),
-					($ops{$file} eq "R" ? undef : $rev),
+					($ops{$file} eq "D" ? undef : $rev),
 					$branch, $date, $keywords);
 			}
 		}
@@ -1884,7 +1891,7 @@ deluxeloginfo [OPTION]... [FILE]...
                        the index is printed only when it contains at least N
 		       ChangeSets. Set to 0 to always print the index
    --index-lines=N     Number of log lines in an index entry (default: 1)
-   --notxt             Disable text output
+   --notext            Disable text output
    --nohtml            Disable HTML output
    --encoding=ENC      Set mail text encoding to ENC (default: iso-8859-1)
 
