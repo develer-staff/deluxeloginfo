@@ -25,6 +25,10 @@
 #
 
 #*# $Log$
+#*# Revision 2.93  2006/05/10 12:19:35  rasky
+#*# Recover syntax error fix from HD crash (by bernie)
+#*# Fix warning (use of undefined value) (by bernie)
+#*#
 #*# Revision 2.92  2006/05/10 12:15:45  rasky
 #*# Fix detection of removed files with SVN (svn log uses 'D').
 #*# Fix the spelling of an option in the help screen.
@@ -1005,14 +1009,14 @@ sub format_output($$$\$)
 	if (@files == 0)
 	{
 		log_output("Skipping empty ChangeSet");
-		return ("", "");
+		return ();
 	}
 
 	if ($log =~ /CVS.?SILENT/)
 	{
 		# Ignore this commit and reset silent status
 		log_output("Ignoring commit by $author because of CVSSILENT", $log);
-		return ("", "");
+		return ();
 	}
 
 	my $incipit = "";
@@ -1151,11 +1155,13 @@ sub process_cslist($$$)
 	{
 		foreach my $changeset ($cslist->changesets($author))
 		{
-			my @out = format_output($csnum, $changeset, $module, $ccrecipients);
-			$fmtText .= $out[0];
-			$fmtHtml .= $out[1];
-			$summary .= $out[2];
-			$csnum++;
+			if (my @out = format_output($csnum, $changeset, $module, $ccrecipients))
+			{
+				$fmtText .= $out[0];
+				$fmtHtml .= $out[1];
+				$summary .= $out[2];
+				$csnum++;
+			}
 		}
 
 		if ($opt_byauthor)
@@ -1750,7 +1756,7 @@ $ENV{'LANG'} = 'en_US.UTF-8';
 # Use SSH by default with the :ext: protocol
 $ENV{'CVS_RSH'} = "ssh";
 
-GetOptions(
+unless (GetOptions(
 	'o|outfile=s'	=> \$opt_outfile,
 	'sender=s'	=> \$opt_sender,
 	'maildomain=s'	=> \$opt_maildomain,
@@ -1781,7 +1787,11 @@ GetOptions(
 	'v|verbose+'	=> \$opt_verbose,
 	'h|help'	=> sub { pod2usage(1); },
 	'man'		=> sub { pod2usage(-exitstatus => 0, -verbose => 2); },
-) or pod2usage(2);
+))
+{
+	print STDERR "Try '$0 --help' for more information.\n";
+	exit(1);
+}
 
 if (($opt_prjtab || $opt_rlog) && @ARGV)
 {
