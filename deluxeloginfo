@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.94  2006/05/15 04:30:12  bernie
+#*# Indent class methods.
+#*#
 #*# Revision 2.93  2006/05/10 12:19:35  rasky
 #*# Recover syntax error fix from HD crash (by bernie)
 #*# Fix warning (use of undefined value) (by bernie)
@@ -143,151 +146,151 @@ sub log_output
 #
 package FileRev;
 
-#
-# Construct a FileRev object
-#
-# SYNOPSIS: FileRev->new(repodir, filename, r1, r2, tag, date, keywords)
-#
-sub new($$$$$$$)
-{
 	#
-	# Collect arguments and create instance
+	# Construct a FileRev object
 	#
-	my $class = shift;
-	my $repodir = shift;
-	my $filename = shift;
-	my $self = {
-		r1 => shift,
-		r2 => shift,
-		tag => shift,
-		date => shift,
-		keywords => shift
-	};
-	bless $self, $class;
-
+	# SYNOPSIS: FileRev->new(repodir, filename, r1, r2, tag, date, keywords)
 	#
-	# Normalize filename
-	#
+	sub new($$$$$$$)
+	{
+		#
+		# Collect arguments and create instance
+		#
+		my $class = shift;
+		my $repodir = shift;
+		my $filename = shift;
+		my $self = {
+			r1 => shift,
+			r2 => shift,
+			tag => shift,
+			date => shift,
+			keywords => shift
+		};
+		bless $self, $class;
 
-	# Prune ,v suffix from filename
-	$filename =~ s|,v$||;
+		#
+		# Normalize filename
+		#
 
-	# Prune CVS repository path from filename
-	$filename =~ s|^$repodir/|| if $repodir;
+		# Prune ,v suffix from filename
+		$filename =~ s|,v$||;
 
-	# Prune Attic directory from filename
-	$filename =~ s|/Attic/|/|;
+		# Prune CVS repository path from filename
+		$filename =~ s|^$repodir/|| if $repodir;
 
-	# Prune leading '/' at the beginning of the path
-	$filename =~ s|^/||;
+		# Prune Attic directory from filename
+		$filename =~ s|/Attic/|/|;
 
-	# Remove any spurious '//' sequences from CVS
-	$filename =~ s|//|/|g;
+		# Prune leading '/' at the beginning of the path
+		$filename =~ s|^/||;
 
-	$self->{filename} = $filename;
+		# Remove any spurious '//' sequences from CVS
+		$filename =~ s|//|/|g;
 
-	return $self;
-}
+		$self->{filename} = $filename;
 
-# Return normalized filename
-sub filename { return shift->{filename}; }
+		return $self;
+	}
 
-# Return old file revision
-sub r1 { return shift->{r1} || "NONE"; }
+	# Return normalized filename
+	sub filename { return shift->{filename}; }
 
-# Return new file revision
-sub r2 { return shift->{r2} || "NONE"; }
+	# Return old file revision
+	sub r1 { return shift->{r1} || "NONE"; }
 
-# Return the branch tag for the file
-sub tag { return shift->{tag} || "HEAD"; }
+	# Return new file revision
+	sub r2 { return shift->{r2} || "NONE"; }
 
-# Return commit timestamp
-sub date { return shift->{date}; }
+	# Return the branch tag for the file
+	sub tag { return shift->{tag} || "HEAD"; }
 
-# Tell if this file is binary
-sub is_binary { return shift->{keywords} eq "kb"; }
+	# Return commit timestamp
+	sub date { return shift->{date}; }
+
+	# Tell if this file is binary
+	sub is_binary { return shift->{keywords} eq "kb"; }
 
 #
 # Handle a list of changed files, the associated log message and the author
 #
 package ChangeSet;
 
-# Construct a new ChangeSet.  Arg1 is the author, arg2 is the log message
-sub new($$$)
-{
-	my $class = shift;
-	bless {
-		author => shift,
-		log => shift,
-		files => [],
-		tag => "HEAD",
-		date => "1970/01/01 00:00:00"
-	}, $class;
-}
-
-# Add a new FileRev entry
-sub add
-{
-	my ($self, $filerev) = @_;
-
-	push @{$self->{files}}, $filerev;
-
-	# Collect date of newest change
-	$self->{date} = $filerev->{date} if ($self->{date} lt $filerev->{date} );
-
-	# Collect tag - FIXME: only one tag
-	$self->{tag} = $filerev->tag;
-}
-
-# Retrieve the author name
-sub author { return shift->{author}; }
-
-# Retrieve the log message
-sub log { return shift->{log}; }
-
-# Return the branch tag for the file
-sub tag { return shift->{tag} || "HEAD"; }
-
-# Return an array of FileRev objects
-sub files
-{
-	my @fr = @{shift->{files}};
-
-	# Return base filename and extension
-	sub split_extension($)
+	# Construct a new ChangeSet.  Arg1 is the author, arg2 is the log message
+	sub new($$$)
 	{
-		my $name = shift;
-		$name =~ /^(.*)\.([^.\/]*)$/;
-		return ($1 || $name, $2 || "");
+		my $class = shift;
+		bless {
+			author => shift,
+			log => shift,
+			files => [],
+			tag => "HEAD",
+			date => "1970/01/01 00:00:00"
+		}, $class;
 	}
-	sub is_header($) { shift =~ /^h|hh|hxx|hpp|h\+\+$/ }
-	sub is_source($) { shift =~ /^c|cpp|cc|cxx|C|c\+\+$/ }
-	 
-	# Fancy sort that makes headers appear before sources, to make code
-	# reviews somewhat easier.
-	sort {
-		my $name_a = $a->filename();
-		my $name_b = $b->filename();
 
-		# Split into basename + extension
-		my ($base_a, $ext_a) = split_extension($name_a);
-		my ($base_b, $ext_b) = split_extension($name_b);
+	# Add a new FileRev entry
+	sub add
+	{
+		my ($self, $filerev) = @_;
 
-		#DEBUG
-		#print "base_a=$base_a, ext_a=$ext_a, base_b=$base_b, ext_b=$ext_b\n";
+		push @{$self->{files}}, $filerev;
 
-		# Same basename and non-null extensions?
-		if ($base_a eq $base_b)
+		# Collect date of newest change
+		$self->{date} = $filerev->{date} if ($self->{date} lt $filerev->{date} );
+
+		# Collect tag - FIXME: only one tag
+		$self->{tag} = $filerev->tag;
+	}
+
+	# Retrieve the author name
+	sub author { return shift->{author}; }
+
+	# Retrieve the log message
+	sub log { return shift->{log}; }
+
+	# Return the branch tag for the file
+	sub tag { return shift->{tag} || "HEAD"; }
+
+	# Return an array of FileRev objects
+	sub files
+	{
+		my @fr = @{shift->{files}};
+
+		# Return base filename and extension
+		sub split_extension($)
 		{
-			# Sort headers before implementations
-			return -1 if is_header($ext_a) && is_source($ext_b);
-			return +1 if is_header($ext_b) && is_source($ext_a);
+			my $name = shift;
+			$name =~ /^(.*)\.([^.\/]*)$/;
+			return ($1 || $name, $2 || "");
 		}
+		sub is_header($) { shift =~ /^h|hh|hxx|hpp|h\+\+$/ }
+		sub is_source($) { shift =~ /^c|cpp|cc|cxx|C|c\+\+$/ }
+		 
+		# Fancy sort that makes headers appear before sources, to make code
+		# reviews somewhat easier.
+		sort {
+			my $name_a = $a->filename();
+			my $name_b = $b->filename();
 
-		# Sort normally
-		return $name_a cmp $name_b;
-	} @fr;
-}
+			# Split into basename + extension
+			my ($base_a, $ext_a) = split_extension($name_a);
+			my ($base_b, $ext_b) = split_extension($name_b);
+
+			#DEBUG
+			#print "base_a=$base_a, ext_a=$ext_a, base_b=$base_b, ext_b=$ext_b\n";
+
+			# Same basename and non-null extensions?
+			if ($base_a eq $base_b)
+			{
+				# Sort headers before implementations
+				return -1 if is_header($ext_a) && is_source($ext_b);
+				return +1 if is_header($ext_b) && is_source($ext_a);
+			}
+
+			# Sort normally
+			return $name_a cmp $name_b;
+		} @fr;
+	}
 
 
 #
@@ -295,77 +298,77 @@ sub files
 #
 package CSList;
 
-sub new($$$)
-{
-	my $class = shift;
-	bless { authors => {} }, $class;
-}
-
-#
-# Add a new FileRev entry to an existing ChangeSet.
-# If no ChangeSet exists for the given log, create a new one.
-#
-sub add_filerev
-{
-	my ($self, $author, $log, $filerev) = @_;
-
-	my ($changeset, $l);
-
-	# Complain for missing log entries
-	$log = "*** Empty log message! ***" if !$log;
-
-	# Do we know this author yet?
-	if (!($l = $self->{authors}{$author}))
+	sub new($$$)
 	{
-		main::log_output("Create new author $author");
-		$l = $self->{authors}{$author} = {};
+		my $class = shift;
+		bless { authors => {} }, $class;
 	}
 
-	# Do we know this log yet?
-	if (!($changeset = ${$l}{$log}))
+	#
+	# Add a new FileRev entry to an existing ChangeSet.
+	# If no ChangeSet exists for the given log, create a new one.
+	#
+	sub add_filerev
 	{
-		main::log_output("Create new ChangeSet for $author", $log);
-		$changeset = ChangeSet->new($author, $log); 
-		${$l}{$log} = $changeset;
+		my ($self, $author, $log, $filerev) = @_;
+
+		my ($changeset, $l);
+
+		# Complain for missing log entries
+		$log = "*** Empty log message! ***" if !$log;
+
+		# Do we know this author yet?
+		if (!($l = $self->{authors}{$author}))
+		{
+			main::log_output("Create new author $author");
+			$l = $self->{authors}{$author} = {};
+		}
+
+		# Do we know this log yet?
+		if (!($changeset = ${$l}{$log}))
+		{
+			main::log_output("Create new ChangeSet for $author", $log);
+			$changeset = ChangeSet->new($author, $log); 
+			${$l}{$log} = $changeset;
+		}
+
+		main::log_output("Append new file for $author on " . $filerev->filename
+			. " rev " . $filerev->r1 . " -> " . $filerev->r2);
+		$changeset->add($filerev);
 	}
 
-	main::log_output("Append new file for $author on " . $filerev->filename
-		. " rev " . $filerev->r1 . " -> " . $filerev->r2);
-	$changeset->add($filerev);
-}
+	#
+	# Construct a FileRev entry and add it with CSList::add_filerev()
+	#
+	# SYNOPSIS: cs_list->add_file(author, log, repodir, file, r1, r2, tagname, date, keywords)
+	#
+	sub add_file
+	{
+		my $self = shift;
+		my $author = shift;
+		my $log = shift;
+		my $filerev = FileRev->new(@_);
+		$self->add_filerev($author, $log, $filerev);
+	}
 
-#
-# Construct a FileRev entry and add it with CSList::add_filerev()
-#
-# SYNOPSIS: cs_list->add_file(author, log, repodir, file, r1, r2, tagname, date, keywords)
-#
-sub add_file
-{
-	my $self = shift;
-	my $author = shift;
-	my $log = shift;
-	my $filerev = FileRev->new(@_);
-	$self->add_filerev($author, $log, $filerev);
-}
+	#
+	# Return a list containing all author names.
+	#
+	sub authors
+	{
+		return keys %{shift->{authors}};
+	}
 
-#
-# Return a list containing all author names.
-#
-sub authors
-{
-	return keys %{shift->{authors}};
-}
+	#
+	# Return a list containing all ChangeSet objects for a specified author
+	# the list is sorted in ascending date order.
+	#
+	sub changesets
+	{
+		my ($self, $author) = @_;
 
-#
-# Return a list containing all ChangeSet objects for a specified author
-# the list is sorted in ascending date order.
-#
-sub changesets
-{
-	my ($self, $author) = @_;
-
-	return sort { $a->{date} cmp $b->{date} } values %{$self->{authors}{$author}};
-}
+		return sort { $a->{date} cmp $b->{date} } values %{$self->{authors}{$author}};
+	}
 
 
 #
