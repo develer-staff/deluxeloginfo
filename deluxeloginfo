@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.95  2006/05/19 20:23:16  bernie
+#*# Allow SVNSILENT as well as CVSSILENT.
+#*#
 #*# Revision 2.94  2006/05/15 04:30:12  bernie
 #*# Indent class methods.
 #*#
@@ -1015,10 +1018,10 @@ sub format_output($$$\$)
 		return ();
 	}
 
-	if ($log =~ /CVS.?SILENT/)
+	if ($log =~ /(CVS|SVN).?SILENT/)
 	{
 		# Ignore this commit and reset silent status
-		log_output("Ignoring commit by $author because of CVSSILENT", $log);
+		log_output("Ignoring commit by $author because of '$1'", $log);
 		return ();
 	}
 
