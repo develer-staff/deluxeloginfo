@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.96  2006/06/07 22:34:18  bernie
+#*# Fix #1467.
+#*#
 #*# Revision 2.95  2006/05/19 20:23:16  bernie
 #*# Allow SVNSILENT as well as CVSSILENT.
 #*#
@@ -870,12 +873,14 @@ sub dodiff($$$$)
 		else
 		{
 			# Make it look like a diff
-			$hunk .= "+ ";
+			$hunk .= "+";
 		}
 
 		$hunk .= $_;
 	}
 	close(DIFF);
+
+	#TODO: print something if $?
 
 	# Pick last hunk too
 	$diff .= $hunk if ($interesting || !$is_diff);
