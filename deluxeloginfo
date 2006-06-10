@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.97  2006/06/10 05:16:00  bernie
+#*# Make stray CRs visible as errors.
+#*#
 #*# Revision 2.96  2006/06/07 22:34:18  bernie
 #*# Fix #1467.
 #*#
@@ -947,6 +950,9 @@ sub diff2html($)
 
 		# Replace HTML reserved chars with entities
 		htmlize $_;
+
+		# Mark leading CRs at EOL
+		s/\r$/<span style="background-color: #FF0000">&lt;CR&gt;<\/span>/;
 
 		# Mark leading whitespace at EOL
 		s/([^ ])(\s+)$/$1<span style="background-color: #FF0000">$2<\/span>/;
