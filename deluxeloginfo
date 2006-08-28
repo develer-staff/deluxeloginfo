@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.98  2006/08/28 03:04:10  bernie
+#*# Print reason for diff failures; Fix log output for (CVS|SVN)SILENT.
+#*#
 #*# Revision 2.97  2006/06/10 05:16:00  bernie
 #*# Make stray CRs visible as errors.
 #*#
@@ -883,7 +886,8 @@ sub dodiff($$$$)
 	}
 	close(DIFF);
 
-	#TODO: print something if $?
+	# Notify diff errors
+	$? and $diff .= "*** DIFF FAILED: $! ***";
 
 	# Pick last hunk too
 	$diff .= $hunk if ($interesting || !$is_diff);
@@ -1029,7 +1033,7 @@ sub format_output($$$\$)
 		return ();
 	}
 
-	if ($log =~ /(CVS|SVN).?SILENT/)
+	if ($log =~ /((CVS|SVN).?SILENT)/)
 	{
 		# Ignore this commit and reset silent status
 		log_output("Ignoring commit by $author because of '$1'", $log);
