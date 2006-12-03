@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.99  2006/12/03 17:48:51  bernie
+#*# Add stub support for git to shut up complaints.
+#*#
 #*# Revision 2.98  2006/08/28 03:04:10  bernie
 #*# Print reason for diff failures; Fix log output for (CVS|SVN)SILENT.
 #*#
@@ -135,7 +138,7 @@ my $opt_index = 999;
 my $opt_indexlines = 1;
 
 # Globals
-my ($is_cvs, $is_svn);
+my ($is_cvs, $is_svn, $is_git);
 
 #
 # Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
@@ -536,7 +539,7 @@ sub svn_date_range($)
 
 	if ($opt_enddate)
 	{
-		$dates .= '{' . $opt_enddate . '}';
+		$dates .= "{$opt_enddate}";
 	}
 	else
 	{
@@ -1717,19 +1720,23 @@ sub dolog($$$)
 		# Match "protocol://path"
 		$is_svn = ($opt_root =~ m{^[\w\+]+://(\w+@|)(/|)(?:[-\w\.]+/*)+$});
 
+		# Match "git" - FIXME: just a placeholder
+		$is_git = ($opt_root =~ m{^git});
+
 		# None? Try to guess from local repository
-		if (!$is_cvs and !$is_svn)
+		if ($is_cvs + $is_svn + $is_git == 0)
 		{
 			# Maybe it's a local path, try to determine whether it's CVS or SVN
 			$is_cvs = (-d "$opt_root/CVSROOT");
 			$is_svn = (-f "$opt_root/format");
+			#TODO: add git
 
 			print STDERR "Root appears to be a CVS local repository.\n" if $opt_verbose and $is_cvs;
 			print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
 		}
 
 		# Both SVN and CVS? Something weird must have happened...
-		if ($is_cvs and $is_svn) { die "Ambiguous root path '$opt_root'" };
+		if ($is_cvs + $is_svn + $is_git > 1) { die "Ambiguous root path '$opt_root'" };
 	}
 	else
 	{
@@ -1755,6 +1762,10 @@ sub dolog($$$)
 
 		# FIXME: use svn info to infer $opt_module or die if --root does not match repository root
 		$cslist = svn_rlog($module, $commitlog);
+	}
+	elsif ($is_git)
+	{
+		# Do nothing, to avoid complaints from cron
 	}
 	else
 	{
