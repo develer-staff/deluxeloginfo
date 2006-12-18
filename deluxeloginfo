@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.103  2006/12/18 14:53:17  marco
+#*# Small doc fixes.
+#*#
 #*# Revision 2.102  2006/12/04 21:40:14  bernie
 #*# Fix confusion between 0 and undef.
 #*#
@@ -1648,6 +1651,7 @@ sub svn_rlog($$)
 		#   M /devtools/trunk/sysadm/learn-spam.sh
 		#   A /devtools/trunk/projman/uac/achievo/remote/class.secure.inc
 		#   D /devtools/trunk/doc/develer_logo.eps
+		#   <EMPTY LINE>
 		#
 		while(<RLOG>)
 		{
@@ -1748,7 +1752,7 @@ sub dolog($$$)
 		$is_cvs ||= 0; $is_svn ||= 0; $is_git ||= 0;
 		if (($is_cvs + $is_svn + $is_git) > 1) { die "Ambiguous root path '$opt_root'" };
 	}
-	else
+	else 
 	{
 		# For now, we only support CVS with commitlog
 		$is_cvs = 1;
@@ -1923,7 +1927,7 @@ deluxeloginfo [OPTION]... [FILE]...
    --module=NAME       CVS module or subtree to work on
    --prjtab=FILE       use FILE as a prjtab file to find repositories
    --rlog              use remote repository access instead of loginfo files
-   --stampdir          where to store timestamps for cvs rlog and svn log
+   --stampdir=DIR      where to store timestamps for cvs rlog and svn log
                        (default: /var/state/loginfo)
    --startdate=DATE    specify start date instead of picking it from stamp file
    --enddate=DATE      specify end date instead of picking it from stamp file
