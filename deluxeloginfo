@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.104  2006/12/20 18:23:29  marco
+#*# With svn, use revision instead of date. CHECKME: current revision is mantained in same file used as timestamp. Is this right?
+#*#
 #*# Revision 2.103  2006/12/18 14:53:17  marco
 #*# Small doc fixes.
 #*#
@@ -526,6 +529,7 @@ sub svn_date($)
 	return time2str('{%Y-%m-%d %H:%M:%S %z}', $mtime, "UTC")
 }
 
+
 #
 # Return an SVN date or revision range in the format "{OLD}:{NEW}" or
 # "R1:R2" from the given stamp file.
@@ -569,6 +573,66 @@ sub svn_date_range($)
 	return $dates;
 }
 
+#
+# Get last revision from svn log output:
+#
+# -------------------------------------------------
+# r666 | author | timestamp | lines
+#
+sub svn_last_rev()
+{
+	open SVNLOG, "svn log $opt_root --limit=1 2>/dev/null |" or die;
+	while (<SVNLOG>)
+	{ 
+		if (/^r([0-9]+)/)
+		{
+			close SVNLOG;
+			return $1;
+		}
+	}
+	close SVNLOG;
+}
+
+#
+# timestamp_filename -> revision
+# If timestamp file does not exist, use previous revision (FIXME). 
+#
+sub svn_rev($)
+{
+	my $rev;
+	if (open REVISION, shift)
+	{
+		chomp($rev = <REVISION>);
+	}
+	else
+	{
+		$rev = svn_last_rev() - 1; # FIXME
+	}
+	close REVISION;
+	return $rev;
+}
+
+sub svn_save_revision($$)
+{
+	my ($filename, $last_rev) = @_;
+	open REVISION, ">$filename" or die;
+	print REVISION $last_rev;
+	close REVISION;
+}
+
+#
+# timestamp_filename -> revision
+# Build argument for svn's -r option. Replace last changeset revision in
+# timestamp_filename.
+#
+sub svn_rev_range($)
+{
+	my $filename = shift;
+	my $last_rev = svn_last_rev;
+	my $range = svn_rev($filename) . ":" . $last_rev;
+	svn_save_revision $filename, $last_rev;
+	$range;
+}
 
 sub bugzillate($)
 {
@@ -1595,7 +1659,11 @@ sub svn_rlog($$)
 	else
 	{
 		$stamp = stamp_filename($module);
-		my $date_range = svn_date_range($stamp);
+		#my $date_range = svn_date_range($stamp);
+
+		# Only a workaround. FIXME
+		my $date_range = svn_rev_range($stamp);
+
 
 		# This is needed to workaround peculiar SVN date handling.
 		# The first revision we get is actually outside the specified
