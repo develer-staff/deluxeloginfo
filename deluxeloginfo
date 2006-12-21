@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.105  2006/12/21 14:34:00  marco
+#*# Use date range if previous revision is not avaible.
+#*#
 #*# Revision 2.104  2006/12/20 18:23:29  marco
 #*# With svn, use revision instead of date. CHECKME: current revision is mantained in same file used as timestamp. Is this right?
 #*#
@@ -567,6 +570,7 @@ sub svn_date_range($)
 			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
 		}
 		create_empty_file("$stamp.new");
+		svn_save_revision("$stamp.new", svn_last_rev());
 		$dates .= svn_date("$stamp.new");
 	}
 
@@ -595,7 +599,7 @@ sub svn_last_rev()
 
 #
 # timestamp_filename -> revision
-# If timestamp file does not exist, use previous revision (FIXME). 
+# If timestamp file does not exist or it's empty, return -1. 
 #
 sub svn_rev($)
 {
@@ -603,35 +607,30 @@ sub svn_rev($)
 	if (open REVISION, shift)
 	{
 		chomp($rev = <REVISION>);
+		close REVISION;
 	}
-	else
-	{
-		$rev = svn_last_rev() - 1; # FIXME
-	}
-	close REVISION;
-	return $rev;
+	$rev > 0 ? $rev : -1;
 }
 
 sub svn_save_revision($$)
 {
 	my ($filename, $last_rev) = @_;
 	open REVISION, ">$filename" or die;
-	print REVISION $last_rev;
+	print REVISION "$last_rev";
 	close REVISION;
 }
 
 #
-# timestamp_filename -> revision
-# Build argument for svn's -r option. Replace last changeset revision in
-# timestamp_filename.
+# timestamp_filename -> revision (or date) range
+# Build argument for svn's -r option. If last changeset revision isn't avaible,
+# returns date range (see svn_date_range).
 #
 sub svn_rev_range($)
 {
 	my $filename = shift;
-	my $last_rev = svn_last_rev;
-	my $range = svn_rev($filename) . ":" . $last_rev;
-	svn_save_revision $filename, $last_rev;
-	$range;
+	my @rev = (svn_rev($filename), svn_last_rev());
+	my $date_range = svn_date_range $filename; # also update revision in file.
+	$rev[0] > 0 ? join(":", @rev) : $date_range;
 }
 
 sub bugzillate($)
