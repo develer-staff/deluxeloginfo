@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.107  2006/12/21 16:44:53  marco
+#*# Fixed typo.
+#*#
 #*# Revision 2.106  2006/12/21 14:42:49  marco
 #*# Use svn info instead svn log to get last revision.
 #*#
@@ -596,7 +599,7 @@ sub svn_last_rev()
 	{ 
 		if (/^Revision: ([0-9]+)/)
 		{
-			close SVNLOG;
+			close SVNINFO;
 			return $1;
 		}
 	}
