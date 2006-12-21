@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.106  2006/12/21 14:42:49  marco
+#*# Use svn info instead svn log to get last revision.
+#*#
 #*# Revision 2.105  2006/12/21 14:34:00  marco
 #*# Use date range if previous revision is not avaible.
 #*#
@@ -578,23 +581,26 @@ sub svn_date_range($)
 }
 
 #
-# Get last revision from svn log output:
+# Get last revision from svn info output:
 #
-# -------------------------------------------------
-# r666 | author | timestamp | lines
+# [...]
+# Repository UUID: 07824c09-1e25-0410-8a65-7111f50c7121
+# Revision: 30
+# Node Kind: directory
+# [...]
 #
 sub svn_last_rev()
 {
-	open SVNLOG, "svn log $opt_root --limit=1 2>/dev/null |" or die;
-	while (<SVNLOG>)
+	open SVNINFO, "svn info $opt_root 2>/dev/null |" or die;
+	while (<SVNINFO>)
 	{ 
-		if (/^r([0-9]+)/)
+		if (/^Revision: ([0-9]+)/)
 		{
 			close SVNLOG;
 			return $1;
 		}
 	}
-	close SVNLOG;
+	close SVNINFO;
 }
 
 #
