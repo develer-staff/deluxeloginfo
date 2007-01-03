@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.108  2007/01/03 20:20:00  marco
+#*# Fixed uninitialized value.
+#*#
 #*# Revision 2.107  2006/12/21 16:44:53  marco
 #*# Fixed typo.
 #*#
@@ -617,8 +620,9 @@ sub svn_rev($)
 	{
 		chomp($rev = <REVISION>);
 		close REVISION;
+		return $rev;
 	}
-	$rev > 0 ? $rev : -1;
+	return -1;
 }
 
 sub svn_save_revision($$)
