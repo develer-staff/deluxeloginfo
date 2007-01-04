@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.109  2007/01/04 10:02:01  marco
+#*# Fixed uninitialized value. (realy).
+#*#
 #*# Revision 2.108  2007/01/03 20:20:00  marco
 #*# Fixed uninitialized value.
 #*#
@@ -620,7 +623,7 @@ sub svn_rev($)
 	{
 		chomp($rev = <REVISION>);
 		close REVISION;
-		return $rev;
+		return ($rev =~ /[0-9]+/) ? $rev : -1;
 	}
 	return -1;
 }
