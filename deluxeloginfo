@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.111  2007/01/09 13:27:34  marco
+#*# Deleted function cmd_out()
+#*#
 #*# Revision 2.110  2007/01/08 16:56:41  marco
 #*# Experimental support fo svn xml output (bug #1469)
 #*#
@@ -1643,20 +1646,6 @@ sub cvs_rlog($$)
 }
 
 #
-# shell command (reference to array of args) -> command's output (string).
-# NOTE: this function is used to put svn xml output in a string.
-# I think there must be a better way to do that.
-#
-sub cmd_out($)
-{
-	my $cmd = shift;
-	open (my $fh, "-|") ||  exec @{$cmd};
-	my $data = "";
-	while (<$fh>) { $data .= $_; }
-	$data;
-}
-
-#
 # Read svn log in XML format.
 # svn log command, repository path -> CSList
 # Output tree (svn log -v --xml):
@@ -1679,40 +1668,35 @@ sub svn_xml_log($$)
 	use XML::Simple;
 
 	my ($cmd, $repodir) = @_;
-	my $log = XMLin(cmd_out($cmd));
+	print STDERR "+ " . join(' ', @{$cmd}) . "\n" if $opt_verbose;
+	open (my $fh, "-|") ||  exec @{$cmd};
+	my $log = XMLin($fh);
 	my $cslist = CSList->new;
 	my $skip_first_cs = 1;
 
 	foreach my $logentry (@{$log->{logentry}})
 	{
-		if ($skip_first_cs)
+		foreach my $path (values (%{$logentry->{paths}}))
 		{
-			$skip_first_cs = 0;
-		}
-		else
-		{
-			foreach my $path (values (%{$logentry->{paths}}))
-			{
-				my $rev = $path->{action} eq "D"
-					? undef
-					: $logentry->{revision};
-				my $prev = $path->{action} eq "A"
-					? undef
-					: $logentry->{revision} - 1;
+			my $rev = $path->{action} eq "D"
+				? undef
+				: $logentry->{revision};
+			my $prev = $path->{action} eq "A"
+				? undef
+				: $logentry->{revision} - 1;
 
-				$cslist->add_file($logentry->{author},
-								  $logentry->{msg},
-								  $repodir,
-								  $path->{content},
-								  $prev,
-								  $rev,
-								  "", # branch
-								  $logentry->{date},
-								  ""); # keywords
-			}
+			$cslist->add_file($logentry->{author},
+							  $logentry->{msg},
+							  $repodir,
+							  $path->{content},
+							  $prev,
+							  $rev,
+							  "", # branch
+							  $logentry->{date},
+							  ""); # keywords
 		}
 	}
-	$cslist;
+	return $cslist;
 }
 
 #
@@ -1750,7 +1734,7 @@ sub svn_rlog($$)
 	my @args = ('svn', 'log', '-v', '--xml', "-r$date_range", "$opt_root/$module");
 	my $cslist = svn_xml_log(\@args, $repodir);
 	rename "$stamp.new", "$stamp" if ($stamp);
-	$cslist;
+	return $cslist;
 }
 # END OF EXPERIMENTAL
 
