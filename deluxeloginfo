@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.112  2007/01/09 18:57:29  marco
+#*# Handle moved files (no diff yet).
+#*#
 #*# Revision 2.111  2007/01/09 13:27:34  marco
 #*# Deleted function cmd_out()
 #*#
@@ -1666,34 +1669,37 @@ sub cvs_rlog($$)
 sub svn_xml_log($$)
 {
 	use XML::Simple;
+	use Data::Dumper;
 
 	my ($cmd, $repodir) = @_;
 	print STDERR "+ " . join(' ', @{$cmd}) . "\n" if $opt_verbose;
 	open (my $fh, "-|") ||  exec @{$cmd};
-	my $log = XMLin($fh);
+	my $log = XMLin($fh, ForceArray => [ 'path' ]);
 	my $cslist = CSList->new;
-	my $skip_first_cs = 1;
 
 	foreach my $logentry (@{$log->{logentry}})
 	{
-		foreach my $path (values (%{$logentry->{paths}}))
+		foreach my $paths (values (%{$logentry->{paths}}))
 		{
-			my $rev = $path->{action} eq "D"
-				? undef
-				: $logentry->{revision};
-			my $prev = $path->{action} eq "A"
-				? undef
-				: $logentry->{revision} - 1;
-
-			$cslist->add_file($logentry->{author},
-							  $logentry->{msg},
-							  $repodir,
-							  $path->{content},
-							  $prev,
-							  $rev,
-							  "", # branch
-							  $logentry->{date},
-							  ""); # keywords
+			foreach my $path (@{$paths})
+			{
+				my $rev = $path->{action} eq "D"
+					? undef
+					: $logentry->{revision};
+				my $prev = $path->{action} eq "A"
+					? undef
+					: $logentry->{revision} - 1;
+				
+				$cslist->add_file($logentry->{author},
+								  $logentry->{msg},
+								  $repodir,
+								  $path->{content},
+								  $prev,
+								  $rev,
+								  "", # branch
+								  $logentry->{date},
+								  ""); # keywords
+			}
 		}
 	}
 	return $cslist;
