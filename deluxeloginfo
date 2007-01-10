@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.113  2007/01/10 18:03:27  marco
+#*# Diff file copiati (bug #1469).
+#*#
 #*# Revision 2.112  2007/01/09 18:57:29  marco
 #*# Handle moved files (no diff yet).
 #*#
@@ -653,7 +656,7 @@ sub svn_save_revision($$)
 sub svn_rev_range($)
 {
 	my $filename = shift;
-	my @rev = (svn_rev($filename), svn_last_rev());
+	my @rev = (svn_rev($filename) + 1, svn_last_rev()); # half-open interval
 	my $date_range = svn_date_range $filename; # also update revision in file.
 	$rev[0] > 0 ? join(":", @rev) : $date_range;
 }
@@ -1672,10 +1675,14 @@ sub svn_xml_log($$)
 	use Data::Dumper;
 
 	my ($cmd, $repodir) = @_;
+
 	print STDERR "+ " . join(' ', @{$cmd}) . "\n" if $opt_verbose;
+
 	open (my $fh, "-|") ||  exec @{$cmd};
 	my $log = XMLin($fh, ForceArray => [ 'path' ]);
 	my $cslist = CSList->new;
+
+	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
 
 	foreach my $logentry (@{$log->{logentry}})
 	{
@@ -1687,9 +1694,10 @@ sub svn_xml_log($$)
 					? undef
 					: $logentry->{revision};
 				my $prev = $path->{action} eq "A"
-					? undef
+					? exists $path->{'copyfrom-rev'}
+						? $path->{'copyfrom-rev'}
+						: undef
 					: $logentry->{revision} - 1;
-				
 				$cslist->add_file($logentry->{author},
 								  $logentry->{msg},
 								  $repodir,
