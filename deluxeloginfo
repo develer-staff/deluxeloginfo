@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.114  2007/01/11 15:25:01  marco
+#*# Handle
+#*#
 #*# Revision 2.113  2007/01/10 18:03:27  marco
 #*# Diff file copiati (bug #1469).
 #*#
@@ -1745,7 +1748,9 @@ sub svn_rlog($$)
 
 	$stamp = stamp_filename($module);
 	my $date_range = svn_rev_range($stamp);
-	my @args = ('svn', 'log', '-v', '--xml', "-r$date_range", "$opt_root/$module");
+	my @args = $commitlog
+		? ('cat', "$commitlog")
+		: ('svn', 'log', '-v', '--xml', "-r$date_range", "$opt_root/$module");
 	my $cslist = svn_xml_log(\@args, $repodir);
 	rename "$stamp.new", "$stamp" if ($stamp);
 	return $cslist;
