@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.115  2007/01/15 12:57:25  marco
+#*# Clean up
+#*#
 #*# Revision 2.114  2007/01/11 15:25:01  marco
 #*# Handle
 #*#
@@ -1743,9 +1746,6 @@ sub svn_rlog($$)
 #		$repodir = $1;
 #	}
 
-
-# EXPERIMENTAL : support for svn xml output.
-
 	$stamp = stamp_filename($module);
 	my $date_range = svn_rev_range($stamp);
 	my @args = $commitlog
@@ -1755,136 +1755,6 @@ sub svn_rlog($$)
 	rename "$stamp.new", "$stamp" if ($stamp);
 	return $cslist;
 }
-# END OF EXPERIMENTAL
-
-# 	if ($commitlog)
-# 	{
-# 		open RLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
-# 	}
-# 	else
-# 	{
-# 		$stamp = stamp_filename($module);
-# 		#my $date_range = svn_date_range($stamp);
-
-# 		# Only a workaround. FIXME
-# 		my $date_range = svn_rev_range($stamp);
-
-
-# 		# This is needed to workaround peculiar SVN date handling.
-# 		# The first revision we get is actually outside the specified
-# 		# range.
-# 		#
-# 		$skip_first_cs = 1;
-
-
-# 		# NOTE: $module may be an empty string, which is fine with SVN
-# 		#       as it means "fetch the repository root".
-# 		my @args = ('svn', 'log', '--non-interactive', '--incremental', '-v', "-r$date_range", "$opt_root/$module");
-# 		print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
-# 		open(RLOG, "-|") || exec @args;
-# 	}
-
-# 	# A nested data structure to hold all collected log data
-# 	my $cslist = CSList->new;
-
-# 	my @files;
-# 	my %ops;
-
-# 	LOOP: while(<RLOG>)
-# 	{
-# 		my $log = "";
-# 		my @files;
-# 		my %ops;
-
-# 		/^---/ or die "Expecting first file header (---), found: '$_'";
-
-# 		# Last CS ends with ---, but nothing else follows
-# 		defined($_ = <RLOG>) or last LOOP;
-
-# 		chomp;
-
-# 		# Parse changeset header:
-# 		#
-# 		# r5189 | woody | 2006-01-19 22:50:09 +0100 (Thu, 19 Jan 2006) | 1 line
-# 		#
-# 		my ($rev, $author, $date, $rest) = $_ =~ /^([^\|]+) \| ([^\|]+) \| ([^\|]+) \|(.*)$/
-# 			or die "Expecting changeset header, got: $_";
-
-# 		# Compute previous version
-# 		my $prev;
-# 		if ($rev =~ /r(\d+)/)
-# 		{
-# 			$rev = $1;
-# 			$prev = $1 - 1;
-# 		}
-
-# 		<RLOG> =~ /^Changed paths:/ or die "Expecting 'Changed paths:', found: $_";
-
-# 		# Collect list of changed paths:
-# 		#
-# 		#   M /devtools/trunk/sysadm/learn-spam.sh
-# 		#   A /devtools/trunk/projman/uac/achievo/remote/class.secure.inc
-# 		#   D /devtools/trunk/doc/develer_logo.eps
-# 		#   <EMPTY LINE>
-# 		#
-# 		while(<RLOG>)
-# 		{
-# 			chomp;
-# 			last if /^\s*$/; # Give up on empty line
-
-# 			my ($op, $file);
-# 			if (($op, $file) = /^\s*([A-Za-z])\s(.*)$/)
-# 			{
-# 				push @files, $file;
-# 				$ops{$file} = $op;
-# 			}
-# 			else
-# 			{
-# 				die "Expecting changed path entry, got: $_";
-# 			}
-# 		}
-
-# 		# Collect log
-# 		while(<RLOG>)
-# 		{
-# 			last if /^---/;
-# 			$log .= $_;
-# 		}
-
-# 		# Skip first changeset entry
-# 		if ($skip_first_cs)
-# 		{
-# 			$skip_first_cs = 0;
-# 		}
-# 		else
-# 		{
-# 			# Insert collected files
-# 			foreach my $file (@files)
-# 			{
-# 				# FIXME: support these
-# 				my $branch = "";
-# 				my $keywords = "";
-
-# 				$cslist->add_file($author, $log, $repodir, $file,
-# 					($ops{$file} eq "A" ? undef : $prev),
-# 					($ops{$file} eq "D" ? undef : $rev),
-# 					$branch, $date, $keywords);
-# 			}
-# 		}
-
-# 		# We've already eaten the changeset separator
-# 		redo LOOP if $_ and /^---/;
-
-# 	} # end while(<>)
-
-# 	close RLOG;
-# 	die "Reading svn log failed: $!" if $?;
-
-# 	# Commit date for next log
-# 	rename "$stamp.new", "$stamp" if ($stamp);
-
-# 	return $cslist;
-# }
 
 sub dolog($$$)
 {
