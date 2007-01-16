@@ -25,6 +25,9 @@
 #
 
 #*# $Log$
+#*# Revision 2.116  2007/01/16 16:15:08  marco
+#*# Bug-fix: get module's last changed revision.
+#*#
 #*# Revision 2.115  2007/01/15 12:57:25  marco
 #*# Clean up
 #*#
@@ -567,9 +570,9 @@ sub svn_date($)
 # Return an SVN date or revision range in the format "{OLD}:{NEW}" or
 # "R1:R2" from the given stamp file.
 #
-sub svn_date_range($)
+sub svn_date_range($$)
 {
-	my $stamp = shift;
+	my ($module, $stamp) = @_;
 	my $dates;
 
 	if ($opt_startdate)
@@ -600,7 +603,7 @@ sub svn_date_range($)
 			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
 		}
 		create_empty_file("$stamp.new");
-		svn_save_revision("$stamp.new", svn_last_rev());
+		svn_save_revision("$stamp.new", svn_last_rev($module));
 		$dates .= svn_date("$stamp.new");
 	}
 
@@ -616,18 +619,19 @@ sub svn_date_range($)
 # Node Kind: directory
 # [...]
 #
-sub svn_last_rev()
+sub svn_last_rev($)
 {
-	open SVNINFO, "svn info $opt_root 2>/dev/null |" or die;
-	while (<SVNINFO>)
+	my ($module) = @_;
+	open my $svninfo, "svn info $opt_root/$module 2>/dev/null |" or die;
+	while (<$svninfo>)
 	{
-		if (/^Revision: ([0-9]+)/)
+		if (/^Last Changed Rev: ([0-9]+)/)
 		{
-			close SVNINFO;
+			close $svninfo;
 			return $1;
 		}
 	}
-	close SVNINFO;
+	close $svninfo;
 }
 
 #
@@ -637,10 +641,10 @@ sub svn_last_rev()
 sub svn_rev($)
 {
 	my $rev;
-	if (open REVISION, shift)
+	if (open my $revision, shift)
 	{
-		chomp($rev = <REVISION>);
-		close REVISION;
+		chomp($rev = <$revision>);
+		close $revision;
 		return ($rev =~ /[0-9]+/) ? $rev : -1;
 	}
 	return -1;
@@ -649,9 +653,9 @@ sub svn_rev($)
 sub svn_save_revision($$)
 {
 	my ($filename, $last_rev) = @_;
-	open REVISION, ">$filename" or die;
-	print REVISION "$last_rev";
-	close REVISION;
+	open my $revision, ">$filename" or die;
+	print $revision "$last_rev";
+	close $revision;
 }
 
 #
@@ -659,11 +663,11 @@ sub svn_save_revision($$)
 # Build argument for svn's -r option. If last changeset revision isn't avaible,
 # returns date range (see svn_date_range).
 #
-sub svn_rev_range($)
+sub svn_rev_range($$)
 {
-	my $filename = shift;
-	my @rev = (svn_rev($filename) + 1, svn_last_rev()); # half-open interval
-	my $date_range = svn_date_range $filename; # also update revision in file.
+	my ($module, $filename) = @_;
+	my @rev = (svn_rev($filename) + 1, svn_last_rev($module)); # half-open interval
+	my $date_range = svn_date_range($module, $filename); # also update revision in file.
 	$rev[0] > 0 ? join(":", @rev) : $date_range;
 }
 
@@ -1685,7 +1689,7 @@ sub svn_xml_log($$)
 	print STDERR "+ " . join(' ', @{$cmd}) . "\n" if $opt_verbose;
 
 	open (my $fh, "-|") ||  exec @{$cmd};
-	my $log = XMLin($fh, ForceArray => [ 'path' ]);
+	my $log = XMLin($fh, ForceArray => [ 'logentry', 'path' ]);
 	my $cslist = CSList->new;
 
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
@@ -1747,7 +1751,7 @@ sub svn_rlog($$)
 #	}
 
 	$stamp = stamp_filename($module);
-	my $date_range = svn_rev_range($stamp);
+	my $date_range = svn_rev_range($module, $stamp);
 	my @args = $commitlog
 		? ('cat', "$commitlog")
 		: ('svn', 'log', '-v', '--xml', "-r$date_range", "$opt_root/$module");
