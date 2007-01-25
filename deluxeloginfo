@@ -1568,9 +1568,9 @@ sub svn_xml_log($$)
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
 
 	# We need to skip first entry, because revision's interval is closed.
-	# ie: [10:10] returns diffs from last revision to 10.
+	# ie: [r10:r10] returns diffs from last revision to r10.
 	#
-	# If we had used [r1+1:r2] it turns to be [11:10] that gives us either:
+	# If we had used [ri+1:rj] it turns to be [r11:r10] that gives us either:
 	#
 	# - right thing: diffs from r10 to r11 if both revisions are of our project
 	# - an error if r11 doesn't exist in repository
