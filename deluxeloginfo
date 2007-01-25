@@ -1567,7 +1567,17 @@ sub svn_xml_log($$)
 
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
 
-	my $first = shift @{$log->{logentry}};  # skip first entry
+	# We need to skip first entry, because revision's interval is closed.
+	# ie: [10:10] returns diffs from last revision to 10.
+	#
+	# If we had used [r1+1:r2] it turns to be [11:10] that gives us either:
+	#
+	# - right thing: diffs from r10 to r11 if both revisions are of our project
+	# - an error if r11 doesn't exist in repository
+	# - diffs from last revision to r10 if r11 is of another project
+
+	my $first = shift @{$log->{logentry}}; # skip first entry
+
 	foreach my $logentry (@{$log->{logentry}})
 	{
 		foreach my $paths (values (%{$logentry->{paths}}))
