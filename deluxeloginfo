@@ -473,7 +473,7 @@ sub svn_date_range($$)
 			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
 		}
 		create_empty_file("$stamp.new");
-		svn_save_revision("$stamp.new", svn_last_rev($module));
+		svn_save_revision("$stamp.new", svn_last_changed($module)); #svn_last_rev($module));
 		$dates .= svn_date("$stamp.new");
 	}
 
@@ -481,22 +481,25 @@ sub svn_date_range($$)
 }
 
 #
-# module -> revision
-# Get last revision from svn info output:
+# module, field -> revision
+# Get specified field from svn info output:
 #
+# Path: .
 # [...]
 # Last Changed Author: sally
 # Last Changed Rev: 11754
 # Last Changed Date: 2007-01-16 12:34:13 +0100 (Tue, 16 Jan 2007)
 # [...]
 #
-sub svn_last_rev($)
+# TODO: use xml.
+#
+sub svn_info($$)
 {
-	my ($module) = @_;
+	my ($module,$field) = @_;
 	open my $svninfo, "svn info $opt_root/$module 2>/dev/null |" or die;
 	while (<$svninfo>)
 	{
-		if (/^Last Changed Rev: ([0-9]+)/)
+		if (/^$field: (\d+)/)
 		{
 			close $svninfo;
 			return $1;
@@ -504,6 +507,23 @@ sub svn_last_rev($)
 	}
 	close $svninfo;
 }
+
+#
+# module -> last changed revision
+#
+sub svn_last_changed($)
+{
+	return svn_info(shift, "Last Changed Rev");
+}
+
+#
+# module -> head
+#
+sub svn_head($)
+{
+	return svn_info(shift, "Revision");
+}
+
 
 #
 # timestamp_filename -> revision
@@ -516,11 +536,14 @@ sub svn_rev($)
 	{
 		chomp($rev = <$revision>);
 		close $revision;
-		return ($rev =~ /[0-9]+/) ? $rev : -1;
+		return ($rev =~ /\d+/) ? $rev : -1;
 	}
 	return -1;
 }
 
+#
+# Write last committed revision in timestamp file.
+#
 sub svn_save_revision($$)
 {
 	my ($filename, $last_rev) = @_;
@@ -533,15 +556,25 @@ sub svn_save_revision($$)
 # module, timestamp_filename -> revision (or date) range
 # Build argument for svn's -r option. If last changeset revision isn't avaible,
 # returns date range (see svn_date_range).
+# If last revision is HEAD return 0.
 #
 sub svn_rev_range($$)
 {
 	my ($module, $filename) = @_;
-	my @rev = (svn_rev($filename), svn_last_rev($module));
+	my $last_diff = svn_rev($filename);
+	my $head = svn_head($module);
+	my @rev;
+	if ($last_diff == $head)
+	{
+		return 0;
+	}
+	my @rev = ($last_diff + 1, $head);
+
 	# get date range and update revision in file
 	# TODO: should be splitted in two functions
 	my $date_range = svn_date_range($module, $filename);
-	$rev[0] > 0 ? join(":", @rev) : $date_range;
+
+	return $rev[0] > 0 ? join(":", @rev) : $date_range;
 }
 
 sub bugzillate($)
@@ -1567,17 +1600,6 @@ sub svn_xml_log($$)
 
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
 
-	# We need to skip first entry, because revision's interval is closed.
-	# ie: [r10:r10] returns diffs from last revision to r10.
-	#
-	# If we had used [ri+1:rj] it turns to be [r11:r10] that gives us either:
-	#
-	# - right thing: diffs from r10 to r11 if both revisions are of our project
-	# - an error if r11 doesn't exist in repository
-	# - diffs from last revision to r10 if r11 is of another project
-
-	my $first = shift @{$log->{logentry}}; # skip first entry
-
 	foreach my $logentry (@{$log->{logentry}})
 	{
 		foreach my $paths (values (%{$logentry->{paths}}))
@@ -1635,10 +1657,14 @@ sub svn_rlog($$)
 #	}
 
 	$stamp = stamp_filename($module);
-	my $date_range = svn_rev_range($module, $stamp);
+	my $range = svn_rev_range($module, $stamp);
+	if (! $range)
+	{
+		return CSList->new;
+	}
 	my @args = $commitlog
 		? ('cat', "$commitlog")
-		: ('svn', 'log', '-v', '--xml', "-r$date_range", "$opt_root/$module");
+		: ('svn', 'log', '-v', '--xml', "-r$range", "$opt_root/$module");
 	my $cslist = svn_xml_log(\@args, $repodir);
 	rename "$stamp.new", "$stamp" if ($stamp);
 	return $cslist;
