@@ -496,7 +496,7 @@ sub svn_date_range($$)
 sub svn_info($$)
 {
 	my ($module,$field) = @_;
-	open my $svninfo, "svn info $opt_root/$module 2>/dev/null |" or die;
+	open my $svninfo, "svn info --non-interactive $opt_root/$module 2>/dev/null |" or die;
 	while (<$svninfo>)
 	{
 		if (/^$field: (\d+)/)
@@ -563,7 +563,7 @@ sub svn_rev_range($$)
 	my ($module, $filename) = @_;
 	my $last_diff = svn_rev($filename);
 	my $head = svn_head($module);
-	my @rev;
+
 	if ($last_diff == $head)
 	{
 		return 0;
@@ -1655,7 +1655,7 @@ sub svn_rlog($$)
 #	{
 #		$repodir = $1;
 #	}
-
+	
 	$stamp = stamp_filename($module);
 	my $range = svn_rev_range($module, $stamp);
 	if (! $range)
@@ -1664,7 +1664,7 @@ sub svn_rlog($$)
 	}
 	my @args = $commitlog
 		? ('cat', "$commitlog")
-		: ('svn', 'log', '-v', '--xml', "-r$range", "$opt_root/$module");
+		: ('svn', 'log', '--non-interactive', '-v', '--xml', "-r$range", "$opt_root/$module");
 	my $cslist = svn_xml_log(\@args, $repodir);
 	rename "$stamp.new", "$stamp" if ($stamp);
 	return $cslist;
