@@ -154,10 +154,10 @@ package ChangeSet;
 	# Construct a new ChangeSet.  Arg1 is the author, arg2 is the log message
 	sub new($$$)
 	{
-		my $class = shift;
+		my ($class, $author, $log) = @_;
 		bless {
-			author => shift,
-			log => shift,
+			author => $author,
+			log => $log,
 			files => [],
 			tag => "HEAD",
 			date => "1970/01/01 00:00:00"
@@ -527,6 +527,7 @@ sub svn_head($)
 
 #
 # timestamp_filename -> revision
+#
 # If timestamp file does not exist or it's empty, return -1.
 #
 sub svn_rev($)
@@ -554,6 +555,7 @@ sub svn_save_revision($$)
 
 #
 # module, timestamp_filename -> revision (or date) range
+#
 # Build argument for svn's -r option. If last changeset revision isn't avaible,
 # returns date range (see svn_date_range).
 # If last revision is HEAD return 0.
@@ -1595,7 +1597,11 @@ sub svn_xml_log($$)
 	print STDERR "+ " . join(' ', @{$cmd}) . "\n" if $opt_verbose;
 
 	open (my $fh, "-|") ||  exec @{$cmd};
-	my $log = XMLin($fh, ForceArray => [ 'logentry', 'path' ]);
+
+	my $log = XMLin($fh,
+					ForceArray => [ 'logentry', 'path' ],
+					SuppressEmpty => '');
+
 	my $cslist = CSList->new;
 
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
@@ -1614,6 +1620,7 @@ sub svn_xml_log($$)
 						? $path->{'copyfrom-rev'}
 						: undef
 					: $logentry->{revision} - 1;
+
 				$cslist->add_file($logentry->{author},
 								  $logentry->{msg},
 								  $repodir,
