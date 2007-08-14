@@ -31,7 +31,7 @@ use Pod::Usage;
 my $versiontag = '$Revision$';
 $versiontag =~ s/.*: (.*) .*/$1/;
 
-# Command line options
+# Command line options 
 my $opt_keeplogs;
 my $opt_verbose;
 my $opt_logfile = '';
@@ -1606,6 +1606,10 @@ sub svn_xml_log($$)
 
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
 
+	unless ($log->{logentry})
+	{
+		return $cslist;
+	}
 	foreach my $logentry (@{$log->{logentry}})
 	{
 		foreach my $paths (values (%{$logentry->{paths}}))
@@ -1662,7 +1666,7 @@ sub svn_rlog($$)
 #	{
 #		$repodir = $1;
 #	}
-	
+
 	$stamp = stamp_filename($module);
 	my $range = svn_rev_range($module, $stamp);
 	if (! $range)
