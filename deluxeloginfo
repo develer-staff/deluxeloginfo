@@ -1606,6 +1606,10 @@ sub svn_xml_log($$)
 
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
 
+	unless(exists $log->{logentry})
+	{
+		return $cslist;
+	}
 	foreach my $logentry (@{$log->{logentry}})
 	{
 		foreach my $paths (values (%{$logentry->{paths}}))
