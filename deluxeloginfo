@@ -1600,16 +1600,12 @@ sub svn_xml_log($$)
 
 	my $log = XMLin($fh,
 					ForceArray => [ 'logentry', 'path' ],
-					SuppressEmpty => '');
+					SuppressEmpty => 1);
 
 	my $cslist = CSList->new;
 
 	print '*'x79 ."\n" . Dumper($log) . '*'x79 ."\n" if $opt_verbose;
 
-	unless ($log->{logentry})
-	{
-		return $cslist;
-	}
 	foreach my $logentry (@{$log->{logentry}})
 	{
 		foreach my $paths (values (%{$logentry->{paths}}))
@@ -1624,9 +1620,12 @@ sub svn_xml_log($$)
 						? $path->{'copyfrom-rev'}
 						: undef
 					: $logentry->{revision} - 1;
+				my $msg = exists $logentry->{msg}
+						? $logentry->{msg}
+						: "";
 
 				$cslist->add_file($logentry->{author},
-								  $logentry->{msg},
+								  $msg,
 								  $repodir,
 								  $path->{content},
 								  $prev,
