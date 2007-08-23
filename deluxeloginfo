@@ -72,7 +72,7 @@ sub log_output
 		print STDERR "  $msg" . ($text ? ":" : "") . "\n";
 		if ($text)
 		{
-			foreach (split '\n', $text) { print "    $_\n"; }
+#			foreach (split '\n', $text) { print "    $_\n"; }
 		}
 	}
 }
@@ -481,8 +481,8 @@ sub svn_date_range($$)
 }
 
 #
-# module, field -> revision
-# Get specified field from svn info output:
+# module, field -> value
+# Get specified field's value from svn info output:
 #
 # Path: .
 # [...]
@@ -576,7 +576,14 @@ sub svn_rev_range($$)
 	# TODO: should be splitted in two functions
 	my $date_range = svn_date_range($module, $filename);
 
-	return $rev[0] > 0 ? join(":", @rev) : $date_range;
+	if ($rev[1])
+	{
+		return $rev[0] > 0 ? join(":", @rev) : $date_range;
+	}
+	else
+	{
+		return $rev[0] > 0 ? $rev[0] : $date_range;
+	}
 }
 
 sub bugzillate($)
@@ -748,17 +755,17 @@ sub send_mail(\$\$\$$$$$)
 	if ($opt_outfile)
 	{
 		print STDERR "Writing mail to '$opt_outfile'...\n" if $opt_verbose;
-		open (MAIL, ">>$opt_outfile") or die "Couldn't open outfile: $!";
+		open (MAIL, ">>:utf8", "$opt_outfile") or die "Couldn't open outfile: $!";
 	}
 	elsif ($newsgroups)
 	{
 		print STDERR "Posting article in '$newsgroups'...\n" if $opt_verbose;
-		open (MAIL, "|/usr/bin/inews -h") or die "Couldn't exec inews: $!";
+		open (MAIL, "|:utf8", "/usr/bin/inews -h") or die "Couldn't exec inews: $!";
 	}
 	elsif ($to)
 	{
 		print STDERR "Sending mail to <$to>...\n" if $opt_verbose;
-		open (MAIL, "|/usr/lib/sendmail -t") or die "Couldn't exec sendmail: $!";
+		open (MAIL, "|:utf8", "/usr/lib/sendmail -t") or die "Couldn't exec sendmail: $!";
 	}
 	else
 	{
