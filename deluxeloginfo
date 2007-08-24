@@ -72,7 +72,7 @@ sub log_output
 		print STDERR "  $msg" . ($text ? ":" : "") . "\n";
 		if ($text)
 		{
-#			foreach (split '\n', $text) { print "    $_\n"; }
+			foreach (split '\n', $text) { print "    $_\n"; }
 		}
 	}
 }
