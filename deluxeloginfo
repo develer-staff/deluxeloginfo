@@ -755,7 +755,7 @@ sub send_mail(\$\$\$$$$$)
 	if ($opt_outfile)
 	{
 		print STDERR "Writing mail to '$opt_outfile'...\n" if $opt_verbose;
-		open (MAIL, "$opt_outfile") or die "Couldn't open outfile: $!";
+		open (MAIL, ">>$opt_outfile") or die "Couldn't open outfile: $!";
 	}
 	elsif ($newsgroups)
 	{
