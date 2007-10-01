@@ -755,17 +755,17 @@ sub send_mail(\$\$\$$$$$)
 	if ($opt_outfile)
 	{
 		print STDERR "Writing mail to '$opt_outfile'...\n" if $opt_verbose;
-		open (MAIL, ">>:utf8", "$opt_outfile") or die "Couldn't open outfile: $!";
+		open (MAIL, "$opt_outfile") or die "Couldn't open outfile: $!";
 	}
 	elsif ($newsgroups)
 	{
 		print STDERR "Posting article in '$newsgroups'...\n" if $opt_verbose;
-		open (MAIL, "|:utf8", "/usr/bin/inews -h") or die "Couldn't exec inews: $!";
+		open (MAIL, "|/usr/bin/inews -h") or die "Couldn't exec inews: $!";
 	}
 	elsif ($to)
 	{
 		print STDERR "Sending mail to <$to>...\n" if $opt_verbose;
-		open (MAIL, "|:utf8", "/usr/lib/sendmail -t") or die "Couldn't exec sendmail: $!";
+		open (MAIL, "|/usr/lib/sendmail -t") or die "Couldn't exec sendmail: $!";
 	}
 	else
 	{
@@ -1553,7 +1553,8 @@ sub cvs_rlog($$)
 					$tagname = $rev_tags{$r} || "UNKNOWN";
 				}
 
-				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2, $tagname, $date, $keywords);
+				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2,
+								  $tagname, $date, $keywords);
 
 				$log = "";
 				$state = 2;
