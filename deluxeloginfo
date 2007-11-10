@@ -31,7 +31,7 @@ use Pod::Usage;
 my $versiontag = '$Revision$';
 $versiontag =~ s/.*: (.*) .*/$1/;
 
-# Command line options 
+# Command line options
 my $opt_keeplogs;
 my $opt_verbose;
 my $opt_logfile = '';
@@ -304,6 +304,15 @@ package CSList;
 		my ($self, $author) = @_;
 
 		return sort { $a->{date} cmp $b->{date} } values %{$self->{authors}{$author}};
+	}
+
+	#
+	# Store revision range in which all diffs stands.
+	#
+	sub set_revision_range
+	{
+		my ($self, $range) = @_;
+		$self->{range} = $range;
 	}
 
 
@@ -929,6 +938,39 @@ sub dodiff($$$$)
 }
 
 #
+# Diff of entire changeset.
+#
+sub make_svn_diff($)
+{
+	my ($range) = @_;
+
+	my @args = ('svn', 'diff', "-r$range", "$opt_root");
+	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
+	open(my $fh, "-|") || exec @args;
+
+	my %diff;
+	my $filename = "";
+	my $contents = "";
+
+	while (<$fh>)
+	{
+		if (/^Index: (.+)/)
+		{
+			$diff{$filename} = $contents;
+			$filename = $1;
+			$contents = "";
+		}
+		else
+		{
+			$contents .= $_;
+		}
+	}
+	$diff{$filename} = $contents;
+	delete $diff{""};
+	return \%diff;
+}
+
+#
 # Escape characters with special meaning for HTML in the passed string(s).
 #
 sub htmlize
@@ -1045,9 +1087,9 @@ sub diff2html($)
 ### END: EXPERIMENTAL/UNUSED CODE ###
 }
 
-sub format_output($$$\$)
+sub format_output($$$$\$)
 {
-	my ($csnum, $changeset, $module, $ccrecipients) = @_;
+	my ($csnum, $changeset, $module, $all_diffs, $ccrecipients) = @_;
 	my ($fmtText, $fmtHtml, $summary);
 	my $diff = "";
 	my @files = $changeset->files;
@@ -1055,7 +1097,9 @@ sub format_output($$$\$)
 	my $log = $changeset->log;
 	my $tagname = $changeset->tag;
 
-	log_output("Processing ChangeSet by $author of " . scalar @files . " files.");
+	log_output("Processing ChangeSet by $author of "
+			   . scalar @files
+			   . " files.");
 
 	# Do nothing for empty file lists
 	if (@files == 0)
@@ -1168,8 +1212,14 @@ sub format_output($$$\$)
 
 		$fmtHtml .= "<tr><td width='1%'>$statelink</td><td width='1%'>$color$rev$color_end</td><td width='100%'>$binary_text$color$file$color_end</td></tr>\n";
 
-
-		if ($opt_diff && !$binary_text)
+		if ($is_svn)
+		{
+			if (exists $all_diffs->{$file})
+			{
+				$diff .= $all_diffs->{$file};
+			}
+		}
+		elsif ($opt_diff && !$binary_text)
 		{
 			$diff .= dodiff($module, $file, $r1, $r2);
 		}
@@ -1203,11 +1253,17 @@ sub process_cslist($$$)
 	my $ccrecipients = "";
 	my $csnum = 1;
 
+	my $diff = make_svn_diff($cslist->{range});
+
 	foreach my $author ($cslist->authors)
 	{
 		foreach my $changeset ($cslist->changesets($author))
 		{
-			if (my @out = format_output($csnum, $changeset, $module, $ccrecipients))
+			if (my @out = format_output($csnum,
+										$changeset,
+										$module,
+										$diff,
+										$ccrecipients))
 			{
 				$fmtText .= $out[0];
 				$fmtHtml .= $out[1];
@@ -1218,7 +1274,13 @@ sub process_cslist($$$)
 
 		if ($opt_byauthor)
 		{
-			send_mail($fmtText, $fmtHtml, $summary, $module, $recipient, $ccrecipients, $author);
+			send_mail($fmtText,
+					  $fmtHtml,
+					  $summary,
+					  $module,
+					  $recipient,
+					  $ccrecipients,
+					  $author);
 
 			# Reset accumulated output
 			$fmtText = $fmtHtml = $summary = "";
@@ -1229,7 +1291,13 @@ sub process_cslist($$$)
 
 	if (!$opt_byauthor)
 	{
-		send_mail($fmtText, $fmtHtml, $summary, $module, $recipient, $ccrecipients, undef);
+		send_mail($fmtText,
+				  $fmtHtml,
+				  $summary,
+				  $module,
+				  $recipient,
+				  $ccrecipients,
+				  undef);
 	}
 }
 
@@ -1689,6 +1757,7 @@ sub svn_rlog($$)
 		: ('svn', 'log', '--non-interactive', '-v', '--xml', "-r$range", "$opt_root/$module");
 	my $cslist = svn_xml_log(\@args, $repodir);
 	rename "$stamp.new", "$stamp" if ($stamp);
+	$cslist->set_revision_range($range);
 	return $cslist;
 }
 
