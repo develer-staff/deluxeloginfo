@@ -938,9 +938,11 @@ sub dodiff($$$$)
 }
 
 #
-# Diff of entire changeset.
+# Return an hash with diff contents of all binary files changed in range
 #
-sub make_svn_diff($)
+# range -> %{filename => output}
+#
+sub svn_binaries($)
 {
 	my ($range) = @_;
 
@@ -948,7 +950,7 @@ sub make_svn_diff($)
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(my $fh, "-|") || exec @args;
 
-	my %diff;
+	my %binaries;
 	my $filename = "";
 	my $contents = "";
 
@@ -956,19 +958,19 @@ sub make_svn_diff($)
 	{
 		if (/^Index: (.+)/)
 		{
-			$diff{$filename} = $contents;
 			$filename = $1;
 			$contents = "";
 		}
-		else
+		elsif(/^Cannot display/)
 		{
 			$contents .= $_;
+			$binaries{$filename} = $contents;
 		}
 	}
-	$diff{$filename} = $contents;
-	delete $diff{""};
-	return \%diff;
+	return \%binaries;
 }
+
+
 
 #
 # Escape characters with special meaning for HTML in the passed string(s).
@@ -1089,7 +1091,7 @@ sub diff2html($)
 
 sub format_output($$$$\$)
 {
-	my ($csnum, $changeset, $module, $all_diffs, $ccrecipients) = @_;
+	my ($csnum, $changeset, $module, $binaries, $ccrecipients) = @_;
 	my ($fmtText, $fmtHtml, $summary);
 	my $diff = "";
 	my @files = $changeset->files;
@@ -1212,12 +1214,9 @@ sub format_output($$$$\$)
 
 		$fmtHtml .= "<tr><td width='1%'>$statelink</td><td width='1%'>$color$rev$color_end</td><td width='100%'>$binary_text$color$file$color_end</td></tr>\n";
 
-		if ($is_svn)
+		if ($is_svn && (exists $binaries->{$file}))
 		{
-			if (exists $all_diffs->{$file})
-			{
-				$diff .= $all_diffs->{$file};
-			}
+			$diff .= $binaries->{$file};
 		}
 		elsif ($opt_diff && !$binary_text)
 		{
@@ -1253,7 +1252,7 @@ sub process_cslist($$$)
 	my $ccrecipients = "";
 	my $csnum = 1;
 
-	my $diff = make_svn_diff($cslist->{range});
+	my $binaries = svn_binaries($cslist->{range});
 
 	foreach my $author ($cslist->authors)
 	{
@@ -1262,7 +1261,7 @@ sub process_cslist($$$)
 			if (my @out = format_output($csnum,
 										$changeset,
 										$module,
-										$diff,
+										$binaries,
 										$ccrecipients))
 			{
 				$fmtText .= $out[0];
