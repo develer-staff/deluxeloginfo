@@ -946,11 +946,15 @@ sub svn_binaries($)
 {
 	my ($range) = @_;
 
+	my %binaries;
+	if (! $is_svn)
+	{
+		return \%binaries;
+	}
 	my @args = ('svn', 'diff', "-r$range", "$opt_root");
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(my $fh, "-|") || exec @args;
 
-	my %binaries;
 	my $filename = "";
 	my $contents = "";
 
