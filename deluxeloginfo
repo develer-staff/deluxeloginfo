@@ -563,17 +563,16 @@ sub svn_save_revision($$)
 }
 
 #
-# module, timestamp_filename -> revision (or date) range
+# module, timestamp_filename -> revision range
 #
-# Build argument for svn's -r option. If last changeset revision isn't avaible,
-# returns date range (see svn_date_range).
+# Build argument for svn's -r option.
 # If last revision is HEAD return 0.
 #
 sub svn_rev_range($$)
 {
 	my ($module, $filename) = @_;
 	my $last_diff = svn_rev($filename);
-	my $head = svn_head($module);
+	my $head = svn_last_changed($module);
 
 	if ($last_diff == $head)
 	{
@@ -585,14 +584,24 @@ sub svn_rev_range($$)
 	# TODO: should be splitted in two functions
 	my $date_range = svn_date_range($module, $filename);
 
-	if ($rev[1])
+	if ($rev[0] < 0)
 	{
-		return $rev[0] > 0 ? join(":", @rev) : $date_range;
+		print STDERR "Wrong starting revision: $rev[0] \n" if $opt_verbose;
+		return;
 	}
-	else
+
+	if (!$rev[1])
 	{
-		return $rev[0] > 0 ? $rev[0] : $date_range;
+		return $rev[0];
 	}
+
+	if ($rev[0] > $rev[1])
+	{
+		print STDERR "Wrong revision range " . join (":", @rev) . "\n" if $opt_verbose;
+		exit (1);
+	}
+
+	return join(":", @rev);
 }
 
 sub bugzillate($)
@@ -884,7 +893,7 @@ sub dodiff($$$$)
 
 	while(<DIFF>)
 	{
-		next if /^Index:/;
+		next if (/^Index:/);
 		$cnt++;
 
 		# Truncate diff when it exceeds <difflimit>
@@ -940,18 +949,19 @@ sub dodiff($$$$)
 #
 # Return an hash with diff contents of all binary files changed in range
 #
-# range -> %{filename => output}
+# module, range -> %{filename => diff output}
 #
-sub svn_binaries($)
+sub svn_binaries($$)
 {
-	my ($range) = @_;
+	my ($module, $range) = @_;
 
 	my %binaries;
-	if (! $is_svn)
+	if (!$is_svn or !$range)
 	{
 		return \%binaries;
 	}
-	my @args = ('svn', 'diff', "-r$range", "$opt_root");
+
+	my @args = ('svn', 'diff', "-r$range", "$opt_root/$module");
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(my $fh, "-|") || exec @args;
 
@@ -1256,7 +1266,7 @@ sub process_cslist($$$)
 	my $ccrecipients = "";
 	my $csnum = 1;
 
-	my $binaries = svn_binaries($cslist->{range});
+	my $binaries = svn_binaries($module, $cslist->{range});
 
 	foreach my $author ($cslist->authors)
 	{
@@ -1629,7 +1639,7 @@ sub cvs_rlog($$)
 
 				$log = "";
 				$state = 2;
-				$state = 1 if /^===/;
+				$state = 1 if (/^===/);
 			}
 			else
 			{
