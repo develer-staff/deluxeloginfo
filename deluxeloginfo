@@ -615,12 +615,12 @@ sub bugzillate($)
 #
 # Print a multi-part MIME header
 #
-sub mime_header(*)
+sub mime_header(*$)
 {
-	my $fh = shift;
+	my ($fh, $type) = @_;
 	print $fh <<EOF;
 MIME-Version: 1.0
-Content-Type: multipart/alternative;
+Content-Type: $type;
   boundary="Boundary-00=_R+zZ+ucfVzM1q7w"
 
 This is a multi-part message in MIME format.
@@ -633,8 +633,7 @@ EOF
 #
 sub mime_part(*$)
 {
-	my $fh = shift;
-	my $type = shift;
+	my ($fh,$type) = @_;
 
 	print $fh <<EOF;
 --Boundary-00=_R+zZ+ucfVzM1q7w
@@ -798,19 +797,18 @@ sub send_mail(\$\$\$$$$$)
 	print MAIL "Subject: $subject\n";
 
 	#
-	# Our intention here is to generate a plain message when
-	# no HTML output is present and a MIME multi-part message
-	# when we have HTML output alone or along with ASCII output.
+	# Out intent here is to generate:
+	#  - a plain ASCII message when no HTML output is present
+	#  - a MIME multi-part alternative message when we have both HTML and ASCII output
+	#  - a MIME multi-part mixed message when we have HTML alone
 	#
-	mime_header(*MAIL) if $opt_html;
+	my $mime_type = ($opt_html && $opt_text) ? "multipart/alternative" : "multipart/mixed";
+	mime_header(*MAIL, $mime_type) if $opt_html;
 
 	# End of mail headers
 	print MAIL "\n";
 
-	if ($opt_text && $opt_html)
-	{
-		mime_part(*MAIL, 'text/plain');
-	}
+	mime_part(*MAIL, 'text/plain') if ($opt_text && $opt_html);
 
 	if ($opt_text)
 	{
