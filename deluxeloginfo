@@ -1983,7 +1983,7 @@ deluxeloginfo [OPTION]... [FILE]...
 
  Options to specify the repository:
    --root=ROOT         base repository path
-   --prefix=DIR        Repository prefix to strip away in logs
+   --prefix=DIR        repository prefix to strip away in logs
    --module=NAME       CVS module or subtree to work on
    --prjtab=FILE       use FILE as a prjtab file to find repositories
    --rlog              use remote repository access instead of loginfo files
@@ -2007,10 +2007,10 @@ deluxeloginfo [OPTION]... [FILE]...
    --index[=N]         output a summary of ChangeSets.  If N is specified,
                        the index is printed only when it contains at least N
 		       ChangeSets. Set to 0 to always print the index
-   --index-lines=N     Number of log lines in an index entry (default: 1)
-   --notext            Disable text output
-   --nohtml            Disable HTML output
-   --encoding=ENC      Set mail text encoding to ENC (default: UTF-8)
+   --index-lines=N     number of log lines in an index entry (default: 1)
+   --notext            disable text output
+   --nohtml            disable HTML output
+   --encoding=ENC      set mail text encoding to ENC (default: UTF-8)
 
  Options for web links:
    --cvsurl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
