@@ -608,8 +608,14 @@ sub bugzillate($)
 {
 	return unless $opt_bugurl;
 
-	# "Bug 123", "bug #123", or just "#123"
-	$_[0] =~ s{((?:[Bb]ug\s*(?:#|)|#)\s*)(\d{2,6})}{<a href='$opt_bugurl?id=$2'>$1$2</a>}g;
+	# Match "Bug 123", "bug #123", or just "#123"
+	# Replace with $opt_bugurl, with @BUG@ interpolated to the bug number
+	$_[0] =~ s{((?:[Bb]ug\s*(?:#|)|#)\s*)(\d{2,6})}{
+		my ($pfx, $id) = ($1, $2);
+		my $url = $opt_bugurl;
+	       	$url =~ s/\@BUG\@/$id/g;
+		"<a href='$url'>$pfx$id</a>"
+	}ge;
 }
 
 #
@@ -2014,7 +2020,8 @@ deluxeloginfo [OPTION]... [FILE]...
 
  Options for web links:
    --cvsurl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
-   --bugurl=URL        set URL for Bugzilla's show_bug.cgi (default: none)
+   --bugurl=URL        set URL for bug database (default: none)
+                       
 
  Miscellaneous options:
    -v, --verbose       turn on verbose diagnostic output
@@ -2038,7 +2045,7 @@ Put something like this in your crontab:
    29 */6 * * * root /usr/local/bin/deluxeloginfo \
        --prjtab=/etc/projects/prjtab \
        --cvsurl="http://cvs.develer.com/viewcvs.cgi" \
-       --bugurl="http://bugs.develer.com/show_bug.cgi"
+       --bugurl="http://bugs.develer.com/show_bug.cgi?id=@BUG@"
 
 If you have multiple CVS repositories, you can process all them at once
 by setting up a project description file like this:
@@ -2052,10 +2059,20 @@ by setting up a project description file like this:
 Multiple recipients can be specified separated by commas.
 Prefix the address list with "news:" to post to newsgroups.
 
+=head1 VARIABLE SUBSTITUTION
+
+The arguments to --bugurl and --cvsurl are subject to substitution
+of the following variables:
+
+   @BUG@        bug ID as matched in the log message
+
 =head1 AUTHOR
 
-Written by Bernardo Innocenti <bernie@develer.com>. Contact me for
-patch submissions and bug reports.
+Written by Bernardo Innocenti <bernie@develer.com>.
+Extended by Marco Benelli <marco@develer.com>.
+Loosely based on KDE's loginfo.pl.
+
+Contact any of us for patch submissions and bug reports.
 
 =cut
 
