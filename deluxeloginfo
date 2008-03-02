@@ -43,7 +43,7 @@ my $opt_rlog;
 my $opt_stampdir = '/var/state/loginfo';
 my $opt_byauthor;
 my $opt_maildomain = '';
-my $opt_cvsurl = '';
+my $opt_weburl = '';
 my $opt_bugurl = '';
 my $opt_diff;
 my $opt_html = 1;
@@ -1208,7 +1208,7 @@ sub format_output($$$$\$)
 		$fmtText .= sprintf("$state %6s  $binary_text$file\n", $rev);
 
 		my $statelink = $state;
-		if ($opt_cvsurl)
+		if ($opt_weburl)
 		{
 			# Prepend a slash to the module name if needed, define to an empty string otherwise
 			my $module_path = "";
@@ -1216,11 +1216,11 @@ sub format_output($$$$\$)
 
 			if ($state eq 'M')
 			{
-				$statelink = "<a href=\"$opt_cvsurl$module_path/$file.diff?r1=text&amp;tr1=$r1&amp;r2=text&amp;tr2=$r2&amp;diff_format=h\">$state</a>";
+				$statelink = "<a href=\"$opt_weburl$module_path/$file.diff?r1=text&amp;tr1=$r1&amp;r2=text&amp;tr2=$r2&amp;diff_format=h\">$state</a>";
 			}
 			else # 'R' or 'A'
 			{
-				$statelink = "<a href=\"$opt_cvsurl$module_path/$file?rev=$rev&amp;content-type=text/vnd.viewcvs-markup\">$state</a>";
+				$statelink = "<a href=\"$opt_weburl$module_path/$file?rev=$rev&amp;content-type=text/vnd.viewcvs-markup\">$state</a>";
 			}
 		}
 
@@ -1894,7 +1894,7 @@ unless (GetOptions(
 	'root|cvsroot=s'=> \$opt_root,
 	'prefix|cvsprefix=s' => \$opt_prefix,
 
-	'cvsurl=s'	=> \$opt_cvsurl,
+	'weburl|cvsurl=s' => \$opt_weburl,
 	'bugurl=s'	=> \$opt_bugurl,
 
 	'v|verbose+'	=> \$opt_verbose,
@@ -2019,7 +2019,7 @@ deluxeloginfo [OPTION]... [FILE]...
    --encoding=ENC      set mail text encoding to ENC (default: UTF-8)
 
  Options for web links:
-   --cvsurl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
+   --weburl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
    --bugurl=URL        set URL for bug database (default: none)
                        
 
@@ -2044,7 +2044,7 @@ Put something like this in your crontab:
 
    29 */6 * * * root /usr/local/bin/deluxeloginfo \
        --prjtab=/etc/projects/prjtab \
-       --cvsurl="http://cvs.develer.com/viewcvs.cgi" \
+       --weburl="http://cvs.develer.com/viewcvs.cgi" \
        --bugurl="http://bugs.develer.com/show_bug.cgi?id=@BUG@"
 
 If you have multiple CVS repositories, you can process all them at once
@@ -2061,7 +2061,7 @@ Prefix the address list with "news:" to post to newsgroups.
 
 =head1 VARIABLE SUBSTITUTION
 
-The arguments to --bugurl and --cvsurl are subject to substitution
+The arguments to --bugurl and --weburl are subject to substitution
 of the following variables:
 
    @BUG@        bug ID as matched in the log message
