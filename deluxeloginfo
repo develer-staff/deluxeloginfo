@@ -610,7 +610,7 @@ sub bugzillate($)
 
 	# Match "Bug 123", "bug #123", or just "#123"
 	# Replace with $opt_bugurl, with @BUG@ interpolated to the bug number
-	$_[0] =~ s{((?:[Bb]ug\s*(?:#|)|#)\s*)(\d{2,6})}{
+	$_[0] =~ s{((?:[Bb]ug\s*(?:#|)|#)\s*)(\d{1,6})}{
 		my ($pfx, $id) = ($1, $2);
 		my $url = $opt_bugurl;
 		$url =~ s/\@BUG\@/$id/g;
