@@ -2019,7 +2019,7 @@ deluxeloginfo [OPTION]... [FILE]...
    --encoding=ENC      set mail text encoding to ENC (default: UTF-8)
 
  Options for web links:
-   --weburl=URL        set URL for ViewCVS viewcvs.cgi (default: none)
+   --weburl=URL        set URL for web revision history viewer (default: none)
    --bugurl=URL        set URL for bug database (default: none)
 
  Miscellaneous options:
