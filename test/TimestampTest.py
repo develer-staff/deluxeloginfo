@@ -1,18 +1,62 @@
 import unittest;
 import TestDLI
 
-class TestBasic(TestDLI.TestDLI):
-    repository_name = 'base.svn'
-    template_path = 'test/repository/base.svn.dump'
+class TestTimeStamp(TestDLI.TestDLI):
+    repository_name = 'timestamp.svn'
+    template_path = 'test/repository/timestamp.svn.dump'
+    start_timestamp = 4
 
-    def testDiffEmptyRevRange(self):
-        self.assertEqual(self.runDli(start_revision=3, end_revision=3), None)
-
-    def testDiffOneRevAddition(self):
-        self.assertEqual(self.runDli(start_revision=1, end_revision=2), """
+    # one revision, using timestamp
+    def testDiffOneRevBinaryChange(self):
+        self.assertTimestamp(4)
+        self.assertEqual(self.runDli(), """
 ChangeSet Index:
 
-CS1 [#cs1] - Added test file.
+CS1 [#cs1] - Binary file modification.
+
+Binary file modification.
+
+M      5  [BIN] trunk/random.dat
+
+
+""")
+        self.assertTimestamp(5)
+
+class TestMultiRevision(TestDLI.TestDLI):
+    repository_name = 'timestamp.svn'
+    template_path = 'test/repository/timestamp.svn.dump'
+    start_timestamp = 0
+
+    # multiple revisions, using timestamp
+    def testMultipleRevBinaryChange(self):
+        self.assertTimestamp(0)
+        self.assertEqual(self.runDli(), """
+ChangeSet Index:
+
+CS1 [#cs1] - Basic subversion structure.
+CS2 [#cs2] - Added test file.
+CS3 [#cs3] - Useless file modification.
+CS4 [#cs4] - Binary file addition.
+CS5 [#cs5] - Binary file modification.
+
+Basic subversion structure.
+
+A      1  branches
+A      1  tags
+A      1  trunk
+
+===================================================================
+--- /dev/null
++++ branches	(revision 1)
+
+===================================================================
+--- /dev/null
++++ tags	(revision 1)
+
+===================================================================
+--- /dev/null
++++ trunk	(revision 1)
+
 
 Added test file.
 
@@ -29,15 +73,6 @@ A      2  trunk/README.txt
 +cupiditat non proident, sunt in culpa qui officia deserunt mollit anim
 +id est laborum.
 
-
-
-""")
-
-    def testDiffOneRevChange(self):
-        self.assertEqual(self.runDli(start_revision=2, end_revision=3), """
-ChangeSet Index:
-
-CS1 [#cs1] - Useless file modification.
 
 Useless file modification.
 
@@ -58,74 +93,21 @@ M      3  trunk/README.txt
 +ea commodi consequat.
 
 
-
-""")
-
-    def testDiffOneRevBinaryAddition(self):
-        self.assertEqual(self.runDli(start_revision=3, end_revision=4), """
-ChangeSet Index:
-
-CS1 [#cs1] - Binary file addition.
-
 Binary file addition.
 
 A      4  [BIN] trunk/random.dat
 
-
-""")
-
-    def testDiffOneRevBinaryChange(self):
-        self.assertEqual(self.runDli(start_revision=4, end_revision=5), """
-ChangeSet Index:
-
-CS1 [#cs1] - Binary file modification.
+Cannot display: file marked as a binary type.
 
 Binary file modification.
 
 M      5  [BIN] trunk/random.dat
 
-
-""")
-
-    def testDiffOneRevCopy(self):
-        self.assertEqual(self.runDli(start_revision=5, end_revision=6), """
-ChangeSet Index:
-
-CS1 [#cs1] - Test copy.
-
-Test copy.
-
-M      6  trunk/README.copy
+Cannot display: file marked as a binary type.
 
 
 """)
-
-    def testDiffOneRevRename(self):
-        self.assertEqual(self.runDli(start_revision=6, end_revision=7), """
-ChangeSet Index:
-
-CS1 [#cs1] - Test rename.
-
-Test rename.
-
-D      6  trunk/README.copy
-M      7  trunk/README.move
-
-
-""")
-
-    def testDiffOneRevDelete(self):
-        self.assertEqual(self.runDli(start_revision=7, end_revision=8), """
-ChangeSet Index:
-
-CS1 [#cs1] - Test delete.
-
-Test delete.
-
-D      7  trunk/README.move
-
-
-""")
+        self.assertTimestamp(5)
 
 if __name__ == '__main__':
     unittest.main()

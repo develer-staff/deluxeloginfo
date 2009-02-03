@@ -38,23 +38,30 @@ class TestDLI(unittest.TestCase):
         stamp = open(timestampPath(repositoryUrl(self.repository_name)), 'r')
         self.assertEquals(stamp.readline(), str(value))
 
-    def runDli(self, start_revision=None, end_revision=None):
+    def runDli(self, start_revision=None, end_revision=None, show_diff=True,
+               diff_limit=500, index_entries=0, index_lines=3,
+               show_text=True, show_html=False):
         if(os.access(self.output_file, os.F_OK)):
             os.remove(self.output_file)
 
-        # FIXME more flexible argument handling
         more_args = []
-        if (start_revision != None):
+        if(start_revision != None):
             more_args.append("--startrevision=" + str(start_revision))
-        if (end_revision != None):
+        if(end_revision != None):
             more_args.append("--endrevision=" + str(end_revision))
+        if(show_diff): more_args.append("--diff")
+        if(diff_limit != None):
+            more_args.append("--difflimit=" + str(diff_limit))
+        if(index_entries != None):
+            more_args.append("--index=" + str(index_entries))
+        if(index_lines != None):
+            more_args.append("--index-lines=" + str(index_lines))
+        if(not show_text): more_args.append("--notext")
+        if(not show_html): more_args.append("--nohtml")
 
-        subprocess.check_call(["./deluxeloginfo", "--by-author",
-                               "--rlog", "--diff", "--difflimit=500", 
-                               "--index=0", "--index-lines=3",
+        subprocess.check_call(["./deluxeloginfo", "--by-author", "--rlog",
                                "--root=" + repositoryUrl(self.repository_name),
-                               "--encoding=utf-8", "--nohtml",
-                               "--stampdir=test/stamps",
+                               "--encoding=utf-8", "--stampdir=test/stamps",
                                "--outfile=" + self.output_file] + more_args)
 
         # in some cases (for example empty revision range), no output
@@ -65,11 +72,18 @@ class TestDLI(unittest.TestCase):
         lines = open(self.output_file, "r").readlines()
 
         # remove header and signature
-        del lines[0:lines.index("\n")]
-        for i in xrange(len(lines) - 1, -1, -1):
-            if lines[i] == "--\n":
-                del lines[i:]
-                break
+        if show_text:
+            del lines[0:lines.index("\n")]
+            for i in xrange(len(lines) - 1, -1, -1):
+                if lines[i] == "--\n":
+                    del lines[i:]
+                    break
+        elif show_html:
+            del lines[0:lines.index("</head>\n")]
+            for i in xrange(len(lines) - 1, -1, -1):
+                if lines[i] == "<p>--<br />\n":
+                    del lines[i:]
+                    break
 
         return string.join(lines, '')
 
