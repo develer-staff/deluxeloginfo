@@ -31,6 +31,9 @@ use Pod::Usage;
 my $versiontag = '$Revision$';
 $versiontag =~ s/.*: (.*) .*/$1/;
 
+my @text_mime_types =
+   ( qr{^text/}, qr{^image/x-xbitmap$}, qr{^image/x-xpixmap$} );
+
 # Command line options
 my $opt_keeplogs;
 my $opt_verbose;
@@ -1725,6 +1728,32 @@ sub svn_xml_log($$)
 						? $logentry->{msg}
 						: "";
 
+				# Fake 'keywords' to recognize binary files
+				# FIXME batch request for all paths
+				my $keywords = '';
+				if ($rev)
+				{
+					my $url = $opt_root . $path->{content} .
+						'@' . $logentry->{revision};
+					open (my $fh, "-|") ||
+						exec 'svn', 'propget', '--xml',
+							'svn:mime-type', $url;
+
+					my $prop = XMLin($fh,
+						ForceArray => [ 'properties' ],
+						SuppressEmpty => 1);
+					my $mime = $prop->{target}
+							->{property}->{content};
+					if (!defined $mime ||
+					    grep $mime =~ $_, @text_mime_types)
+					{
+						$keywords = '';
+					}
+					else
+					{
+						$keywords = 'kb';
+					}
+				}
 				$cslist->add_file($logentry->{author},
 								  $msg,
 								  $repodir,
@@ -1733,7 +1762,7 @@ sub svn_xml_log($$)
 								  $rev,
 								  "", # branch
 								  $logentry->{date},
-								  ""); # keywords
+								  $keywords); # keywords
 			}
 		}
 	}
