@@ -88,5 +88,25 @@ M      5  [BIN] trunk/random.dat
 
 """)
 
+class TestTimeStamp(TestDLI.TestDLI):
+    repository_name = 'base.svn'
+    template_path = 'test/repository/base.svn.dump'
+    start_timestamp = 4
+
+    def testDiffOneRevBinaryChange(self):
+        self.assertTimestamp(4)
+        self.assertEqual(self.runDli(), """
+ChangeSet Index:
+
+CS1 [#cs1] - Binary file modification.
+
+Binary file modification.
+
+M      5  [BIN] trunk/random.dat
+
+
+""")
+        self.assertTimestamp(5)
+
 if __name__ == '__main__':
     unittest.main()

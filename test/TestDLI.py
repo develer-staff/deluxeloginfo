@@ -12,6 +12,10 @@ def repositoryUrl(name):
 def repositoryPath(name):
     return os.path.abspath("test/repository/" + name)
 
+def timestampPath(repository_url):
+        return "test/stamps/" + \
+            re.sub("[^a-zA-Z0-0]", "_", repository_url) + ".stamp"
+
 class TestDLI(unittest.TestCase):
     # False if test modifies repository
     is_readonly = True
@@ -26,11 +30,13 @@ class TestDLI(unittest.TestCase):
                                 (template, destination), shell=True)
 
     def setupTimestamp(self, repository_url, value):
-        stamp_path = "test/stamps/" + \
-                       re.sub("[^a-zA-Z0-0]", "_", repository_url) + ".stamp"
-        stamp = open(stamp_path, 'w')
-        stamp.write(value)
+        stamp = open(timestampPath(repository_url), 'w')
+        stamp.write(str(value))
         stamp.close()
+
+    def assertTimestamp(self, value):
+        stamp = open(timestampPath(repositoryUrl(self.repository_name)), 'r')
+        self.assertEquals(stamp.readline(), str(value))
 
     def runDli(self, start_revision=None, end_revision=None):
         if(os.access(self.output_file, os.F_OK)):
