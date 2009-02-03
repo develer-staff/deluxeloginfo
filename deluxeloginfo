@@ -52,6 +52,8 @@ my $opt_encoding = 'UTF-8';
 my $opt_difflimit = 0;
 my $opt_startdate;
 my $opt_enddate;
+my $opt_startrevision;
+my $opt_endrevision;
 my $opt_root = '';
 my $opt_prefix = '';
 my $opt_module = '';
@@ -472,7 +474,7 @@ sub svn_date_range($$)
 	{
 		$dates .= "{$opt_enddate}";
 	}
-	else
+	elsif (!$opt_endrevision)
 	{
 		# Create a new file with the current datestamp
 		# (we'll overwrite the old stamp later, only on success)
@@ -571,8 +573,8 @@ sub svn_save_revision($$)
 sub svn_rev_range($$)
 {
 	my ($module, $filename) = @_;
-	my $last_diff = svn_rev($filename);
-	my $head = svn_last_changed($module);
+	my $last_diff = $opt_startrevision || svn_rev($filename);
+	my $head = $opt_endrevision || svn_last_changed($module);
 
 	if ($last_diff == $head)
 	{
@@ -582,6 +584,7 @@ sub svn_rev_range($$)
 
 	# get date range and update revision in file
 	# TODO: should be splitted in two functions
+	# FIXME: only used to update revision in file: rename
 	my $date_range = svn_date_range($module, $filename);
 
 	if ($rev[0] < 0)
@@ -1891,6 +1894,8 @@ unless (GetOptions(
 	'stampdir=s'	=> \$opt_stampdir,
 	'startdate=s'   => \$opt_startdate,
 	'enddate=s'     => \$opt_enddate,
+	'startrevision=s'=>\$opt_startrevision,
+	'endrevision=s' => \$opt_endrevision,
 	'keeplogs'	=> \$opt_keeplogs,
 	'root|cvsroot=s'=> \$opt_root,
 	'prefix|cvsprefix=s' => \$opt_prefix,
@@ -1998,6 +2003,10 @@ deluxeloginfo [OPTION]... [FILE]...
                        (default: /var/state/loginfo)
    --startdate=DATE    specify start date instead of picking it from stamp file
    --enddate=DATE      specify end date instead of picking it from stamp file
+   --startrevision=NUM specify start revision instead of picking it from
+                       stamp file (Subversion-only)
+   --endrevision=NUM   specify end revision instead of picking it from
+                       stamp file (Subversion-only)
    --keeplogs          keep log files instead of rotating them
 
  Options for output redirection:
