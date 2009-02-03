@@ -7,7 +7,8 @@ class TestFormatting(TestDLI.TestDLI):
 
     # test "boring" hunks are skipped from diff
     def testBoringHunk(self):
-        self.assertEqual(self.runDli(start_revision=12, end_revision=13), """
+        self.assertEqualDiff(self.runDli(start_revision=12, end_revision=13),
+                             """
 ChangeSet Index:
 
 CS1 [#cs1] - Test boring hunks.
@@ -41,8 +42,8 @@ Added: svn:keywords
 
     # test long diffs are truncated
     def testLongDiff(self):
-        self.assertEqual(self.runDli(start_revision=2, end_revision=3,
-                                     diff_limit=6), """
+        self.assertEqualDiff(self.runDli(start_revision=2, end_revision=3,
+                                         diff_limit=6), """
 ChangeSet Index:
 
 CS1 [#cs1] - Useless file modification.
@@ -65,8 +66,8 @@ M      3  trunk/README.txt
     # test long diff lines weight more than short ones
     # when computing diff size
     def testLongDiffLines(self):
-        self.assertEqual(self.runDli(start_revision=10, end_revision=11,
-                                     diff_limit=10), """
+        self.assertEqualDiff(self.runDli(start_revision=10, end_revision=11,
+                                         diff_limit=10), """
 ChangeSet Index:
 
 CS1 [#cs1] - File with long lines.
@@ -88,7 +89,7 @@ A     11  trunk/file_with_long_lines.txt
 """)
 
     def testEmptyLogMessage(self):
-        self.assertEqual(self.runDli(start_revision=8, end_revision=9), """
+        self.assertEqualDiff(self.runDli(start_revision=8, end_revision=9), """
 ChangeSet Index:
 
 CS1 [#cs1] - *** Empty log message! ***
@@ -106,8 +107,8 @@ A      9  trunk/empty_log_message.txt
 
     # long log messare is truncated in index
     def testLongLogMessage(self):
-        self.assertEqual(self.runDli(start_revision=9, end_revision=10,
-                                     index_lines=2), """
+        self.assertEqualDiff(self.runDli(start_revision=9, end_revision=10,
+                                         index_lines=2), """
 ChangeSet Index:
 
 CS1 [#cs1] - Log message with

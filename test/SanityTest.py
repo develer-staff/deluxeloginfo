@@ -6,10 +6,11 @@ class TestBasic(TestDLI.TestDLI):
     template_path = 'test/repository/base.svn.dump'
 
     def testDiffEmptyRevRange(self):
-        self.assertEqual(self.runDli(start_revision=3, end_revision=3), None)
+        self.assertEqualDiff(self.runDli(start_revision=3, end_revision=3),
+                             None)
 
     def testDiffOneRevAddition(self):
-        self.assertEqual(self.runDli(start_revision=1, end_revision=2), """
+        self.assertEqualDiff(self.runDli(start_revision=1, end_revision=2), """
 ChangeSet Index:
 
 CS1 [#cs1] - Added test file.
@@ -34,7 +35,7 @@ A      2  trunk/README.txt
 """)
 
     def testDiffOneRevChange(self):
-        self.assertEqual(self.runDli(start_revision=2, end_revision=3), """
+        self.assertEqualDiff(self.runDli(start_revision=2, end_revision=3), """
 ChangeSet Index:
 
 CS1 [#cs1] - Useless file modification.
@@ -62,7 +63,7 @@ M      3  trunk/README.txt
 """)
 
     def testDiffOneRevBinaryAddition(self):
-        self.assertEqual(self.runDli(start_revision=3, end_revision=4), """
+        self.assertEqualDiff(self.runDli(start_revision=3, end_revision=4), """
 ChangeSet Index:
 
 CS1 [#cs1] - Binary file addition.
@@ -75,7 +76,7 @@ A      4  [BIN] trunk/random.dat
 """)
 
     def testDiffOneRevBinaryChange(self):
-        self.assertEqual(self.runDli(start_revision=4, end_revision=5), """
+        self.assertEqualDiff(self.runDli(start_revision=4, end_revision=5), """
 ChangeSet Index:
 
 CS1 [#cs1] - Binary file modification.
@@ -88,7 +89,7 @@ M      5  [BIN] trunk/random.dat
 """)
 
     def testDiffOneRevCopy(self):
-        self.assertEqual(self.runDli(start_revision=5, end_revision=6), """
+        self.assertEqualDiff(self.runDli(start_revision=5, end_revision=6), """
 ChangeSet Index:
 
 CS1 [#cs1] - Test copy.
@@ -101,7 +102,7 @@ M      6  trunk/README.copy
 """)
 
     def testDiffOneRevRename(self):
-        self.assertEqual(self.runDli(start_revision=6, end_revision=7), """
+        self.assertEqualDiff(self.runDli(start_revision=6, end_revision=7), """
 ChangeSet Index:
 
 CS1 [#cs1] - Test rename.
@@ -115,7 +116,7 @@ M      7  trunk/README.move
 """)
 
     def testDiffOneRevDelete(self):
-        self.assertEqual(self.runDli(start_revision=7, end_revision=8), """
+        self.assertEqualDiff(self.runDli(start_revision=7, end_revision=8), """
 ChangeSet Index:
 
 CS1 [#cs1] - Test delete.

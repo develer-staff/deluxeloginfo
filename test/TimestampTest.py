@@ -9,7 +9,7 @@ class TestTimeStamp(TestDLI.TestDLI):
     # one revision, using timestamp
     def testDiffOneRevBinaryChange(self):
         self.assertTimestamp(4)
-        self.assertEqual(self.runDli(), """
+        self.assertEqualDiff(self.runDli(), """
 ChangeSet Index:
 
 CS1 [#cs1] - Binary file modification.
@@ -30,7 +30,7 @@ class TestMultiRevision(TestDLI.TestDLI):
     # multiple revisions, using timestamp
     def testMultipleRevBinaryChange(self):
         self.assertTimestamp(0)
-        self.assertEqual(self.runDli(), """
+        self.assertEqualDiff(self.runDli(), """
 ChangeSet Index:
 
 CS1 [#cs1] - Basic subversion structure.
