@@ -610,6 +610,38 @@ sub svn_rev_range($$)
 	return join(":", @rev);
 }
 
+#
+# timestamp_filename -> revision range
+#
+# Build git revision range.
+#
+sub git_rev_range($)
+{
+	my $filename = shift;
+
+	my $last_diff = 'HEAD~100';
+	if ($opt_startrevision)
+	{
+		$last_diff = $opt_startrevision;
+	}
+	else
+	{
+		if (open my $revision, $filename)
+		{
+			chomp($last_diff = <$revision> || "");
+			close $revision;
+		}
+		else
+		{
+			print STDERR "Warning: can't find last rev file: $filename\n" if $opt_verbose;
+			$last_diff = "";
+		}
+	}
+	my $end = $opt_endrevision || 'HEAD';
+
+	return $last_diff . ".." . $end;
+}
+
 sub bugzillate($)
 {
 	return unless $opt_bugurl;
@@ -884,6 +916,10 @@ sub dodiff($$$$)
 		{
 			@args = ('svn', 'diff', "-r$r1:$r2", "$opt_root/$file\@$r2");
 		}
+	}
+	elsif ($is_git)
+	{
+		@args = ('git', "--git-dir=$opt_root/$module", 'diff', "$r1..$r2", '--', $file);
 	}
 
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
@@ -1817,6 +1853,95 @@ sub svn_rlog($$)
 	return $cslist;
 }
 
+#
+# Process git log output
+#
+sub git_log($)
+{
+	my $module = shift;
+	my $stamp;
+
+	#
+	# Extract path prefix from the root
+	#
+	my $gitdir;
+
+	$gitdir = "$opt_root/$module";
+	print STDERR "Reading log with gitdir='$gitdir'\n" if ($opt_verbose);
+
+	$stamp = stamp_filename($module);
+	my $range = git_rev_range($stamp);
+
+	# Save last revision
+	create_empty_file("$stamp.new");
+	open my $lastrev, '>', "$stamp.new";
+	print $lastrev `git --git-dir=$gitdir rev-list HEAD^..HEAD`;
+	close $lastrev;
+
+	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '-m', $range);
+	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
+	open(RLOG, "-|") || exec @args;
+
+	# A nested data structure to hold all collected log data
+	my $cslist = CSList->new;
+
+	# initialize vars with the default values
+	my $file = "";
+	my $r1 = "";
+	my $r2 = "";
+	my $log = "";
+	my $directory = "";
+	my $date = "";
+	my $author = "";
+	my $removed = 0;
+	my $keywords = "";
+	my %rev_tags;
+	my %seen; # whatchanged shows some merges twice
+
+	while (<RLOG>)
+	{
+		if (/^commit ([0-9a-f]+)( |$)/)
+		{
+			$r1 = $1 . "^";
+			$r2 = $1;
+		}
+		elsif (/^Author: (.*)$/)
+		{
+			$author = $1;
+		}
+		elsif (/^Date: +(\w{3}) +(\w{3}) +(\d+) +(\S+) +(\d+) +(\S+)$/)
+		{
+			use Date::Format qw(time2str);
+			use HTTP::Date qw(str2time);
+			$date = time2str('%Y-%m-%dT%H:%M:%SZ',
+					 str2time("$3 $2 $5 $4 $6"), 'UTC');
+		}
+		elsif (/^\s+(.*)$/)
+		{
+			$log .= $1 . "\n";
+		}
+		elsif (/^:.*\.\.\. (.)\s+(.*)$/)
+		{
+			$keywords = $1;
+			$file = $2;
+			if (!$seen{$r2})
+			{
+				$cslist->add_file($author, $log, $gitdir, $file, $r1, $r2, '', $date, $keywords);
+			}
+			$log = '';
+			$seen{$r2} = 1;
+		}
+	}
+
+	close RLOG;
+	die "Reading git log failed: $!" if $?;
+
+	# Commit date for next log
+	rename "$stamp.new", "$stamp" if ($stamp);
+
+	return $cslist;
+}
+
 sub dolog($$$)
 {
 	my ($module, $commitlog, $recipient) = @_;
@@ -1839,7 +1964,7 @@ sub dolog($$$)
 		$is_svn = ($opt_root =~ m{^[\w\+]+://(\w+@|)(/|)(?:[-\w\.]+/*)+$});
 
 		# Match "git" - FIXME: just a placeholder
-		$is_git = ($opt_root =~ m{^git});
+		$is_git = ($opt_root =~ m{^git}) || ($opt_root =~ m{\.git$});
 
 		# None? Try to guess from local repository
 		if (!($is_cvs or $is_svn or $is_git))
@@ -1884,8 +2009,9 @@ sub dolog($$$)
 	}
 	elsif ($is_git)
 	{
-		# Abort silently to avoid complaints from cron
-		return;
+		# $opt_rlog and die "--rlog doesn't make any sense with GIT";
+
+		$cslist = git_log($module);
 	}
 	else
 	{
