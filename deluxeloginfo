@@ -919,7 +919,14 @@ sub dodiff($$$$)
 	}
 	elsif ($is_git)
 	{
-		@args = ('git', "--git-dir=$opt_root/$module", 'diff', "$r1..$r2", '--', $file);
+		if ($r1 eq "NONE")
+		{
+			@args = ('git', "--git-dir=$opt_root/$module", 'show', $r2, '--', $file);
+		}
+		else
+		{
+			@args = ('git', "--git-dir=$opt_root/$module", 'diff', "$r1..$r2", '--', $file);
+		}
 	}
 
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
@@ -938,9 +945,17 @@ sub dodiff($$$$)
 		$hunk .= "+++ $file\t(revision $r2)\n";
 	}
 
+	my $seen_git_index = $is_git ? 0 : 1;
 	while(<DIFF>)
 	{
 		next if (/^Index:/);
+		if (!$seen_git_index)
+		{
+		    next unless /^index /;
+		    $seen_git_index = 1;
+		    $_ = ('=' x 70) . "\n";
+		}
+
 		$cnt++;
 
 		# Truncate diff when it exceeds <difflimit>
@@ -1237,7 +1252,7 @@ sub format_output($$$$\$)
 		# Guess CVS operation from revisions pair
 		my $state = 'M';
 		my $added_state = 'A';
-		my $removed_state = $is_svn ? 'D' : 'R';
+		my $removed_state = $is_svn || $is_git ? 'D' : 'R';
 
 		$state = $removed_state if ($r2 eq "NONE");
 		$state = $added_state if ($r1 eq "NONE");
@@ -1889,7 +1904,7 @@ sub git_log($)
 	my $file = "";
 	my $r1 = "";
 	my $r2 = "";
-	my $log = "";
+	my @log;
 	my $directory = "";
 	my $date = "";
 	my $author = "";
@@ -1902,7 +1917,8 @@ sub git_log($)
 	{
 		if (/^commit ([0-9a-f]+)( |$)/)
 		{
-			$r1 = $1 . "^";
+			$r1 = `git --git-dir=$gitdir rev-parse $1^`;
+			chomp $r1;
 			$r2 = $1;
 		}
 		elsif (/^Author: (.*)$/)
@@ -1918,17 +1934,25 @@ sub git_log($)
 		}
 		elsif (/^\s+(.*)$/)
 		{
-			$log .= $1 . "\n";
+			push @log, $1 if length $1;
 		}
 		elsif (/^:.*\.\.\. (.)\s+(.*)$/)
 		{
-			$keywords = $1;
+			if ($1 eq 'A')
+			{
+				$r1 = 'NONE';
+			}
+			elsif ($1 eq 'D')
+			{
+				$r2 = 'NONE';
+			}
+			my $log = join "\n", @log, '';
 			$file = $2;
 			if (!$seen{$r2})
 			{
 				$cslist->add_file($author, $log, $gitdir, $file, $r1, $r2, '', $date, $keywords);
 			}
-			$log = '';
+			undef @log;
 			$seen{$r2} = 1;
 		}
 	}

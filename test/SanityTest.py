@@ -143,14 +143,11 @@ ChangeSet Index:
 
 CS1 [#cs1] - Another formatting change.
 
-
 Another formatting change.
-
 
 M bffc9b150529f11fe676839eab6ae763153d963e  README.txt
 
-diff --git a/README.txt b/README.txt
-index 45523d4..6c62860 100644
+======================================================================
 --- a/README.txt
 +++ b/README.txt
 @@ -1,7 +1,7 @@
@@ -167,6 +164,99 @@ index 45523d4..6c62860 100644
 
 
 """)
+
+    def testDiffOneRevAddition(self):
+        self.assertEqualDiff(self.runDli(start_revision="f72d8aa5541",
+                                         end_revision="d476f89be83"), """
+ChangeSet Index:
+
+CS1 [#cs1] - File addition.
+
+File addition.
+
+A d476f89be8300b539a346d2dc311f385ff35a1e9  add_file.txt
+
+======================================================================
+--- /dev/null
++++ b/add_file.txt
+@@ -0,0 +1 @@
++Added file.
+
+
+
+""")
+
+    def testDiffOneRevCopy(self):
+        self.assertEqualDiff(self.runDli(start_revision="d476f89be83",
+                                         end_revision="5f56b1035d09"), """
+ChangeSet Index:
+
+CS1 [#cs1] - Copied file.
+
+Copied file.
+
+M 5f56b1035d098c465ac6fcac39a9cb3fe2a75254  copy_file.txt
+
+
+""")
+
+    def testDiffOneRevRename(self):
+        self.assertEqualDiff(self.runDli(start_revision="5f56b1035d09",
+                                         end_revision="8df793771ac4"), """
+ChangeSet Index:
+
+CS1 [#cs1] - Rename file.
+
+Rename file.
+
+D 5f56b1035d098c465ac6fcac39a9cb3fe2a75254  copy_file.txt
+M 8df793771ac452c5be95630e4a5e56030f7156d4  rename_file.txt
+
+
+""")
+
+    def testDiffOneRevDelete(self):
+        self.assertEqualDiff(self.runDli(start_revision="8df793771ac4",
+                                         end_revision="c94ffe16f76660"), """
+ChangeSet Index:
+
+CS1 [#cs1] - Removed file.
+
+Removed file.
+
+D 8df793771ac452c5be95630e4a5e56030f7156d4  rename_file.txt
+
+
+""")
+
+    def testDiffOneRevBinaryAddition(self):
+        self.assertEqualDiff(self.runDli(start_revision='c94ffe16f7666',
+                                         end_revision='af9ddcc9efa8aa8'), """
+ChangeSet Index:
+
+CS1 [#cs1] - Binary file add.
+
+Binary file add.
+
+A af9ddcc9efa8aa8273ccd21177a5b99ce2d24389  [BIN] random.dat
+
+
+""")
+
+    def testDiffOneRevBinaryChange(self):
+        self.assertEqualDiff(self.runDli(start_revision='ea57c1c06ad41',
+                                         end_revision='f9b4c81c9c0d'), """
+ChangeSet Index:
+
+CS1 [#cs1] - Binary file change.
+
+Binary file change.
+
+M f9b4c81c9c0d64e956d9dcd011e750544938a518  [BIN] random.dat
+
+
+""")
+
 
 if __name__ == '__main__':
     unittest.main()
