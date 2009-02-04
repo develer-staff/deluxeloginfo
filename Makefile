@@ -12,6 +12,7 @@ clean:
 	rm -rf cover_db
 	rm -rf test/stamps/*
 	rm -rf test/tmp/*
-	rm -rf test/repository/base.svn
+	rm -rf test/repository/*.svn
 
 .PHONY: all test testcover clean
+

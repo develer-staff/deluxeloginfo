@@ -1,9 +1,13 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+
 import unittest
 import subprocess
 import re
 import os
 import string
 import difflib
+import codecs
 
 # TODO (all file) use os.path
 
@@ -79,7 +83,9 @@ class TestDLI(unittest.TestCase):
         if(not os.access(self.output_file, os.F_OK)):
             return None
         
-        lines = open(self.output_file, "r").readlines()
+        binary_handle = open(self.output_file, "r")
+        reader = codecs.getreader("utf-8")(binary_handle)
+        lines = reader.readlines()
 
         # remove header and signature
         if show_text:

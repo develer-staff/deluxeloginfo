@@ -1727,6 +1727,12 @@ sub svn_xml_log($$)
 				my $msg = exists $logentry->{msg}
 						? $logentry->{msg}
 						: "";
+				# diff seems already in bytes, so
+				# force log message to bytes as well
+				if (utf8::is_utf8($msg))
+				{
+					utf8::encode($msg);
+				}
 
 				# Fake 'keywords' to recognize binary files
 				# FIXME batch request for all paths

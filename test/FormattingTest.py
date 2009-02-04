@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+
 import unittest;
 import TestDLI
 
@@ -7,34 +10,28 @@ class TestFormatting(TestDLI.TestDLI):
 
     # test "boring" hunks are skipped from diff
     def testBoringHunk(self):
-        self.assertEqualDiff(self.runDli(start_revision=12, end_revision=13),
+        self.assertEqualDiff(self.runDli(start_revision=14, end_revision=15),
                              """
 ChangeSet Index:
 
-CS1 [#cs1] - Test boring hunks.
+CS1 [#cs1] - Test.
 
-Test boring hunks.
+Test.
 
-M     13  trunk/keywords.txt
+M     15  trunk/keywords.txt
 
 ===================================================================
---- trunk/keywords.txt\t(revision 12)
-+++ trunk/keywords.txt\t(revision 13)
-@@ -14,7 +15,7 @@
+--- trunk/keywords.txt\t(revision 14)
++++ trunk/keywords.txt\t(revision 15)
+@@ -15,7 +15,7 @@
  14
  15
  16
--17
-+16bis
+-16bis
++17
  18
  19
  20
-
-Property changes on: keywords.txt
-___________________________________________________________________
-Added: svn:keywords
-   + Id
-
 
 
 
@@ -121,6 +118,32 @@ when displayed
 inside index.
 
 D      9  trunk/empty_log_message.txt
+
+
+""")
+
+    # test with latin1 characters
+    def testNonAsciiChars(self):
+        self.assertEqualDiff(self.runDli(start_revision=13, end_revision=14),
+                             u"""
+ChangeSet Index:
+
+CS1 [#cs1] - Test lettere accentate: àèìòù.
+
+Test lettere accentate: àèìòù.
+
+M     14  trunk/README.txt
+
+===================================================================
+--- trunk/README.txt	(revision 13)
++++ trunk/README.txt	(revision 14)
+@@ -2,3 +2,5 @@
+ tempor incidunt ut labore et dolore magna aliqua. Ut enim ad minim
+ veniam, quis nostrud exercitation ullamco laboris nisi ut aliquid ex
+ ea commodi consequat.
++
++  Test lettere accentate: àèìòù.
+
 
 
 """)

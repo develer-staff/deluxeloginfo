@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+
 import unittest
 from SanityTest import *
 from FormattingTest import *
