@@ -13,6 +13,7 @@ clean:
 	rm -rf test/stamps/*
 	rm -rf test/tmp/*
 	rm -rf test/repository/*.svn
+	rm -rf test/repository/*.git
 
 .PHONY: all test testcover clean
 

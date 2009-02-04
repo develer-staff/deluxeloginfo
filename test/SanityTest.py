@@ -131,5 +131,42 @@ D      7  trunk/README.move
 
 """)
 
+class TestBasicGit(TestDLI.TestDLI):
+    repository_name = 'base.git'
+    repository_type = 'git'
+    template_path = 'test/repository/base.git.dump'
+
+    def testDiffOneRevChange(self):
+        self.assertEqualDiff(self.runDli(start_revision="e1b4ebaa1",
+                                         end_revision="bffc9b15"), """
+ChangeSet Index:
+
+CS1 [#cs1] - Another formatting change.
+
+
+Another formatting change.
+
+
+M bffc9b150529f11fe676839eab6ae763153d963e  README.txt
+
+diff --git a/README.txt b/README.txt
+index 45523d4..6c62860 100644
+--- a/README.txt
++++ b/README.txt
+@@ -1,7 +1,7 @@
+-  Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
++Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+ eiusmod tempor incididunt ut labore et dolore magna aliqua.
+ 
+-  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
++Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+ nisi ut aliquip ex ea commodo consequat.
+ 
+   Duis aute irure dolor in reprehenderit in voluptate velit esse
+
+
+
+""")
+
 if __name__ == '__main__':
     unittest.main()

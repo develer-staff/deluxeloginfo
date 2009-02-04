@@ -1,0 +1,141 @@
+blob
+mark :1
+data 458
+  Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+nisi ut aliquip ex ea commodo consequat.
+
+  Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur.
+
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+officia deserunt mollit anim id est laborum.
+
+reset refs/heads/master
+commit refs/heads/master
+mark :2
+author Mattia Barbon <mattia@monolith.(none)> 1233739109 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233739109 +0100
+data 16
+Test text file.
+M 100644 :1 README.txt
+
+blob
+mark :3
+data 454
+  Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur.
+
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+officia deserunt mollit anim id est laborum.
+
+commit refs/heads/master
+mark :4
+author Mattia Barbon <mattia@monolith.(none)> 1233739796 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233739796 +0100
+data 19
+Formatting change.
+from :2
+M 100644 :3 README.txt
+
+blob
+mark :5
+data 454
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+nisi ut aliquip ex ea commodo consequat.
+
+  Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur.
+
+  Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+officia deserunt mollit anim id est laborum.
+
+commit refs/heads/master
+mark :6
+author Mattia Barbon <mattia@monolith.(none)> 1233739812 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233739812 +0100
+data 27
+Another formatting change.
+from :2
+M 100644 :5 README.txt
+
+blob
+mark :7
+data 450
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur.
+
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+officia deserunt mollit anim id est laborum.
+
+commit refs/heads/master
+mark :8
+author Mattia Barbon <mattia@monolith.(none)> 1233739859 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233739859 +0100
+data 80
+Merge branch 'master' of /home/mattia/devtools/projman/dli/test/repository/base
+from :4
+merge :6
+M 100644 :7 README.txt
+
+blob
+mark :9
+data 448
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+eiusmod tempor incididunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur.
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+officia deserunt mollit anim id est laborum.
+
+commit refs/heads/master
+mark :10
+author Mattia Barbon <mattia@monolith.(none)> 1233741638 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233741638 +0100
+data 33
+Re-edit from the start revision.
+from :2
+M 100644 :9 README.txt
+
+commit refs/heads/master
+mark :11
+author Mattia Barbon <mattia@monolith.(none)> 1233741761 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233741761 +0100
+data 115
+Merge branch 'master' of /home/mattia/devtools/projman/dli/test/repository/base into HEAD
+
+Conflicts:
+
+	README.txt
+from :10
+merge :8
+
+commit refs/heads/master
+mark :12
+author Mattia Barbon <mattia@monolith.(none)> 1233756145 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233756145 +0100
+data 20
+Test for HEAD diff.
+from :11
+M 100644 :7 README.txt
+
