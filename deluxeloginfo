@@ -910,7 +910,7 @@ sub dodiff($$$$)
 		# Truncate diff when it exceeds <difflimit>
 		# or if the size grows over <difflimit> full lines of 80 characters.
 		if ($opt_difflimit and
-			(($cnt > $opt_difflimit) or (length($diff) > $opt_difflimit * 80)))
+			(($cnt > $opt_difflimit) or (length($diff) + length($hunk) > $opt_difflimit * 80)))
 		{
 			# Limit exceeded: discard further input and exit
 			while (<DIFF>) {}
