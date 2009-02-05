@@ -1,0 +1,28 @@
+blob
+mark :1
+data 24
+Test latin1 àèìòù.
+
+reset refs/heads/master
+commit refs/heads/master
+mark :2
+author Mattia Barbon <mattia@monolith.(none)> 1233844484 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233844484 +0100
+data 35
+Latin-1 commit message àèìòù.
+M 100644 :1 test_latin1.txt
+
+blob
+mark :3
+data 32
+Another test latin1 àèìòù.
+
+commit refs/heads/master
+mark :4
+author Mattia Barbon <mattia@monolith.(none)> 1233844748 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233844748 +0100
+data 32
+Another test latin1 àèìòù.
+from :2
+M 100644 :3 test_latin1.txt
+

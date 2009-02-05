@@ -148,5 +148,34 @@ M     14  trunk/README.txt
 
 """)
 
+class TestFormattingGit(TestDLI.TestDLI):
+    repository_name = 'latin1.git'
+    repository_type = 'git'
+    template_path = 'test/repository/latin1.git.dump'
+
+    # test with latin1 characters
+    def testNonAsciiChars(self):
+        self.assertEqualDiff(self.runDli(start_revision='144c3ba9',
+                                         end_revision='30fbdf4'),
+                             u"""
+ChangeSet Index:
+
+CS1 [#cs1] - Another test latin1 àèìòù.
+
+Another test latin1 àèìòù.
+
+M 30fbdf4975c0c49d3591e5506d6c33afa3b4ca8e  test_latin1.txt
+
+======================================================================
+--- a/test_latin1.txt
++++ b/test_latin1.txt
+@@ -1 +1 @@
+-Test latin1 àèìòù.
++Another test latin1 àèìòù.
+
+
+
+""")
+
 if __name__ == '__main__':
     unittest.main()
