@@ -22,7 +22,7 @@ def repositoryPath(name):
 
 def timestampPath(repository_url):
         return "test/stamps/" + \
-            re.sub("[^a-zA-Z0-0]", "_", repository_url) + ".stamp"
+            re.sub("[^a-zA-Z0-9]", "_", repository_url) + ".stamp"
 
 class TestDLI(unittest.TestCase):
     # 'svn' or 'git'
