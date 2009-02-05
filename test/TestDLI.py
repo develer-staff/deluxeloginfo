@@ -49,7 +49,8 @@ class TestDLI(unittest.TestCase):
                                 (template, destination), shell=True)
 
     def setupGitRepository(self, template, destination):
-        subprocess.check_call(["git", "--git-dir=%s" % destination, "init"])
+        subprocess.check_call(["git", "--git-dir=%s" % destination, "init",
+                               "--bare"])
         subprocess.check_call("cat %s | git --git-dir=%s fast-import" %
                                 (template, destination), shell=True)
 
@@ -58,14 +59,20 @@ class TestDLI(unittest.TestCase):
         stamp.write(str(value))
         stamp.close()
 
+    def setTimestamp(self, value):
+        stamp = open(timestampPath(repositoryUrl(self.repository_type,
+                                                 self.repository_name)), 'w')
+        stamp.write(str(value))
+        stamp.close()
+
     def assertTimestamp(self, value):
         stamp = open(timestampPath(repositoryUrl(self.repository_type,
                                                  self.repository_name)), 'r')
-        self.assertEqual(stamp.readline(), str(value))
+        self.assertEqualDiff(string.join(stamp.readlines(), ""), str(value))
 
     def runDli(self, start_revision=None, end_revision=None, show_diff=True,
                diff_limit=500, index_entries=0, index_lines=3,
-               show_text=True, show_html=False):
+               show_text=True, show_html=False, verbose=False):
         if os.access(self.output_file, os.F_OK):
             os.remove(self.output_file)
 
@@ -83,6 +90,7 @@ class TestDLI(unittest.TestCase):
             more_args.append("--index-lines=" + str(index_lines))
         if not show_text: more_args.append("--notext")
         if not show_html: more_args.append("--nohtml")
+        if verbose: more_args.append("-v")
 
         subprocess.check_call(["./deluxeloginfo", "--by-author", "--rlog",
                                "--root=" + repositoryUrl(self.repository_type,

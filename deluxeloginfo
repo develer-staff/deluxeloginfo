@@ -619,27 +619,36 @@ sub git_rev_range($)
 {
 	my $filename = shift;
 
+	if ($opt_endrevision && !$opt_startrevision)
+	{
+		die "for Git, specify both start and end revision or none";
+	}
+
 	my $last_diff = 'HEAD~100';
 	if ($opt_startrevision)
 	{
-		$last_diff = $opt_startrevision;
+		return $opt_startrevision . '..' . $opt_endrevision;
 	}
 	else
 	{
+		my %revisions;
 		if (open my $revision, $filename)
 		{
-			chomp($last_diff = <$revision> || "");
-			close $revision;
+			while (defined (my $line = <$revision>))
+			{
+				next if $line =~ /^\s*$/;
+				$line =~ /^(\S+)\s(\S+)$/
+				  or die "Invalid stamp line: '$line'";
+				$revisions{$2} = $1 . '..' . $2;
+			}
 		}
 		else
 		{
 			print STDERR "Warning: can't find last rev file: $filename\n" if $opt_verbose;
-			$last_diff = "";
 		}
-	}
-	my $end = $opt_endrevision || 'HEAD';
 
-	return $last_diff . ".." . $end;
+		return \%revisions;
+	}
 }
 
 sub bugzillate($)
@@ -1871,34 +1880,22 @@ sub svn_rlog($$)
 #
 # Process git log output
 #
-sub git_log($)
+sub git_log_branch($$$$)
 {
 	my $module = shift;
-	my $stamp;
+	my $branch = shift;
+	my $range = shift;
+	my $cslist = shift;
 
 	#
 	# Extract path prefix from the root
 	#
-	my $gitdir;
-
-	$gitdir = "$opt_root/$module";
+	my $gitdir = "$opt_root/$module";
 	print STDERR "Reading log with gitdir='$gitdir'\n" if ($opt_verbose);
-
-	$stamp = stamp_filename($module);
-	my $range = git_rev_range($stamp);
-
-	# Save last revision
-	create_empty_file("$stamp.new");
-	open my $lastrev, '>', "$stamp.new";
-	print $lastrev `git --git-dir=$gitdir rev-list HEAD^..HEAD`;
-	close $lastrev;
 
 	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '-m', $range);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
-
-	# A nested data structure to hold all collected log data
-	my $cslist = CSList->new;
 
 	# initialize vars with the default values
 	my $file = "";
@@ -1912,6 +1909,7 @@ sub git_log($)
 	my $keywords = "";
 	my %rev_tags;
 	my %seen; # whatchanged shows some merges twice
+	my $new_tip;
 
 	while (<RLOG>)
 	{
@@ -1920,6 +1918,8 @@ sub git_log($)
 			$r1 = `git --git-dir=$gitdir rev-parse $1^`;
 			chomp $r1;
 			$r2 = $1;
+			undef @log;
+			$new_tip ||= $1;
 		}
 		elsif (/^Author: (.*)$/)
 		{
@@ -1950,9 +1950,10 @@ sub git_log($)
 			$file = $2;
 			if (!$seen{$r2})
 			{
-				$cslist->add_file($author, $log, $gitdir, $file, $r1, $r2, '', $date, $keywords);
+				$cslist->add_file($author, $log, $gitdir,
+						  $file, $r1, $r2, $branch,
+						  $date, $keywords);
 			}
-			undef @log;
 			$seen{$r2} = 1;
 		}
 	}
@@ -1960,8 +1961,46 @@ sub git_log($)
 	close RLOG;
 	die "Reading git log failed: $!" if $?;
 
-	# Commit date for next log
-	rename "$stamp.new", "$stamp" if ($stamp);
+	return $new_tip;
+}
+
+sub git_log($)
+{
+	my $module = shift;
+	my $gitdir = "$opt_root/$module";
+
+	# A nested data structure to hold all collected log data
+	my $cslist = CSList->new;
+
+	my $stamp = stamp_filename($module);
+	my $range = git_rev_range($stamp);
+	my %new_tip;
+
+	# FIXME make git_rev_range return value uniform
+	if ($opt_startrevision)
+	{
+		git_log_branch($module, undef, $range, $cslist);
+	}
+	else
+	{
+		my @branches = map { chomp; substr $_, 2 }
+		                   `git --git-dir=$gitdir branch`;
+		foreach my $branch (@branches)
+		{
+			$new_tip{$branch} =
+			  git_log_branch($module, $branch, $range->{$branch},
+					 $cslist);
+		}
+	}
+
+	if (!$opt_startrevision)
+	{
+		create_empty_file("$stamp.new");
+		open my $lastrev, '>', "$stamp.new";
+		print $lastrev "$new_tip{$_} $_\n" foreach sort keys %new_tip;
+		close $lastrev;
+		rename "$stamp.new", "$stamp";
+	}
 
 	return $cslist;
 }
