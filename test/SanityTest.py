@@ -198,6 +198,8 @@ Copied file.
 M 5f56b1035d098c465ac6fcac39a9cb3fe2a75254  copy_file.txt
 
 
+
+
 """)
 
     def testDiffOneRevRename(self):
@@ -211,6 +213,8 @@ Rename file.
 
 D 5f56b1035d098c465ac6fcac39a9cb3fe2a75254  copy_file.txt
 M 8df793771ac452c5be95630e4a5e56030f7156d4  rename_file.txt
+
+
 
 
 """)

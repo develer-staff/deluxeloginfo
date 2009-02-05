@@ -1912,7 +1912,7 @@ sub git_log_branch($$$$)
 	my $new_tip = `git --git-dir=$gitdir rev-parse $range->[0]`;
 	chomp $new_tip;
 	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '-m',
-		    $new_tip, @{$range}[1 ,, $#$range]);
+		    '--find-copies-harder', $new_tip, @{$range}[1 ,, $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
 
@@ -1952,8 +1952,9 @@ sub git_log_branch($$$$)
 		{
 			push @log, $1 if length $1;
 		}
-		elsif (/^:.*\.\.\. (.)\s+(.*)$/)
+		elsif (/^:.*\.\.\. (.)\d*\s+([^\t\n]+)(?:\t([^\t\n]+))?$/)
 		{
+			$file = $2;
 			if ($1 eq 'A')
 			{
 				$r1 = 'NONE';
@@ -1962,10 +1963,23 @@ sub git_log_branch($$$$)
 			{
 				$r2 = 'NONE';
 			}
+			elsif ($1 eq 'C')
+			{
+				$file = $3;
+			}
+			elsif ($1 eq 'R')
+			{
+				$file = $3;
+			}
 			my $log = join "\n", @log, '';
-			$file = $2;
 			if (!$seen{$r2})
 			{
+				if ($1 eq 'R')
+				{
+					$cslist->add_file($author, $log, $gitdir,
+							  $2, $r1, 'NONE', $branch,
+							  $date, $keywords);
+				}
 				$cslist->add_file($author, $log, $gitdir,
 						  $file, $r1, $r2, $branch,
 						  $date, $keywords);
