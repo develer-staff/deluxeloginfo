@@ -615,9 +615,10 @@ sub svn_rev_range($$)
 #
 # Build git revision range.
 #
-sub git_rev_range($)
+sub git_rev_range($\@)
 {
 	my $filename = shift;
+	my $branches = shift;
 
 	if ($opt_endrevision && !$opt_startrevision)
 	{
@@ -627,7 +628,7 @@ sub git_rev_range($)
 	my $last_diff = 'HEAD~100';
 	if ($opt_startrevision)
 	{
-		return $opt_startrevision . '..' . $opt_endrevision;
+		return { _ => [ $opt_endrevision, "^$opt_startrevision" ] };
 	}
 	else
 	{
@@ -639,7 +640,21 @@ sub git_rev_range($)
 				next if $line =~ /^\s*$/;
 				$line =~ /^(\S+)\s(\S+)$/
 				  or die "Invalid stamp line: '$line'";
-				$revisions{$2} = $1 . '..' . $2;
+				$revisions{$2} = [ $2, "^$1" ];
+			}
+
+			# add ranges for newly-created branches; this
+			# will list revisions once even in case of
+			# multiple branches created between two dli
+			# runs; revisions might be attributed to the
+			# "wrong" branch but there is no way around it
+			my @old_branches = grep $revisions{$_}, @$branches;
+			my @new_branches = grep !$revisions{$_}, @$branches;
+			foreach my $branch (@new_branches)
+			{
+				$revisions{$branch} =
+				  [ $branch, map "^$_", @old_branches ];
+				push @old_branches, $branch;
 			}
 		}
 		else
@@ -1891,9 +1906,13 @@ sub git_log_branch($$$$)
 	# Extract path prefix from the root
 	#
 	my $gitdir = "$opt_root/$module";
+	print STDERR "Reading log for branch $branch\n" if $opt_verbose && $branch;
 	print STDERR "Reading log with gitdir='$gitdir'\n" if ($opt_verbose);
 
-	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '-m', $range);
+	my $new_tip = `git --git-dir=$gitdir rev-parse $range->[0]`;
+	chomp $new_tip;
+	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '-m',
+		    $new_tip, @{$range}[1 ,, $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
 
@@ -1907,9 +1926,7 @@ sub git_log_branch($$$$)
 	my $author = "";
 	my $removed = 0;
 	my $keywords = "";
-	my %rev_tags;
-	my %seen; # whatchanged shows some merges twice
-	my $new_tip;
+	my %seen; # whatchanged shows most merges multiple times
 
 	while (<RLOG>)
 	{
@@ -1919,7 +1936,6 @@ sub git_log_branch($$$$)
 			chomp $r1;
 			$r2 = $1;
 			undef @log;
-			$new_tip ||= $1;
 		}
 		elsif (/^Author: (.*)$/)
 		{
@@ -1972,19 +1988,19 @@ sub git_log($)
 	# A nested data structure to hold all collected log data
 	my $cslist = CSList->new;
 
+	my @branches = map { chomp; substr $_, 2 }
+			   `git --git-dir=$gitdir branch`;
 	my $stamp = stamp_filename($module);
-	my $range = git_rev_range($stamp);
+	my $range = git_rev_range($stamp, @branches);
 	my %new_tip;
 
 	# FIXME make git_rev_range return value uniform
 	if ($opt_startrevision)
 	{
-		git_log_branch($module, undef, $range, $cslist);
+		git_log_branch($module, undef, $range->{_}, $cslist);
 	}
 	else
 	{
-		my @branches = map { chomp; substr $_, 2 }
-		                   `git --git-dir=$gitdir branch`;
 		foreach my $branch (@branches)
 		{
 			$new_tip{$branch} =
