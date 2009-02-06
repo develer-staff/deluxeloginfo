@@ -62,6 +62,7 @@ my $opt_prefix = '';
 my $opt_module = '';
 my $opt_index = 999;
 my $opt_indexlines = 1;
+my @opt_branches;
 
 # Globals
 my ($is_cvs, $is_svn, $is_git);
@@ -347,7 +348,7 @@ sub create_empty_file($;$$)
 {
 	my $filename = shift;
 
-	open(FILE, ">$filename") or die $!;
+	open(FILE, ">$filename") or die "$filename: $!";
 	close FILE;
 
 	if (my $user = shift)
@@ -660,6 +661,11 @@ sub git_rev_range($\@)
 		else
 		{
 			print STDERR "Warning: can't find last rev file: $filename\n" if $opt_verbose;
+			foreach my $branch (@$branches)
+			{
+				$revisions{$branch} =
+				  [ $branch, "^$branch^@" ];
+			}
 		}
 
 		return \%revisions;
@@ -2002,8 +2008,36 @@ sub git_log($)
 	# A nested data structure to hold all collected log data
 	my $cslist = CSList->new;
 
-	my @branches = map { chomp; substr $_, 2 }
-			   `git --git-dir=$gitdir branch`;
+	my %branch_names;
+	my $branch_options = '';
+	foreach my $branch (@opt_branches)
+	{
+		if ($branch eq 'local')
+		{
+		    # noop
+		}
+		elsif ($branch eq 'remote')
+		{
+		    $branch_options .= ' -r';
+		}
+		elsif ($branch eq 'all')
+		{
+		    $branch_options .= ' -a';
+		}
+		else
+		{
+		    $branch_names{$branch} = 1;
+		}
+	}
+	if (defined $branch_options)
+	{
+	    foreach my $branch (`git --git-dir=$gitdir branch $branch_options`)
+	    {
+		chomp $branch;
+		$branch_names{substr $branch, 2} = 1;
+	    }
+	}
+	my @branches = keys %branch_names;
 	my $stamp = stamp_filename($module);
 	my $range = git_rev_range($stamp, @branches);
 	my %new_tip;
@@ -2153,6 +2187,7 @@ unless (GetOptions(
 	'keeplogs'	=> \$opt_keeplogs,
 	'root|cvsroot=s'=> \$opt_root,
 	'prefix|cvsprefix=s' => \$opt_prefix,
+	'branch=s'      => \@opt_branches,
 
 	'weburl|cvsurl=s' => \$opt_weburl,
 	'bugurl=s'	=> \$opt_bugurl,
@@ -2262,7 +2297,10 @@ deluxeloginfo [OPTION]... [FILE]...
    --endrevision=NUM   specify end revision instead of picking it from
                        stamp file (Subversion-only)
    --keeplogs          keep log files instead of rotating them
-
+   --branches=[local|remote|all|<branch-name>]
+                       branches to track (Git only); can be specified
+                       multiple times
+          
  Options for output redirection:
    -o, --outfile=FILE  use FILE as output instead of sending mail
    --sender=ADDR       sender e-mail address for log messages
