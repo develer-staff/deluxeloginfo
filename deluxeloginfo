@@ -1822,16 +1822,10 @@ sub svn_xml_log($$)
 				{
 					my $url = $opt_root . $path->{content} .
 						'@' . $logentry->{revision};
-					open (my $fh, "-|") ||
-						exec 'svn', 'propget', '--xml',
-							'svn:mime-type', $url;
-
-					my $prop = XMLin($fh,
-						ForceArray => [ 'properties' ],
-						SuppressEmpty => 1);
-					my $mime = $prop->{target}
-							->{property}->{content};
-					if (!defined $mime ||
+					my $mime =
+					    `svn propget svn:mime-type $url`;
+					chomp $mime;
+					if (!defined $mime || !length($mime) ||
 					    grep $mime =~ $_, @text_mime_types)
 					{
 						$keywords = '';
