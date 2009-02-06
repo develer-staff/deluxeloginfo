@@ -26,3 +26,17 @@ Another test latin1 àèìòù.
 from :2
 M 100644 :3 test_latin1.txt
 
+blob
+mark :5
+data 17
+Test bugzillate.
+
+commit refs/heads/master
+mark :6
+author Mattia Barbon <mattia@monolith.(none)> 1233913180 +0100
+committer Mattia Barbon <mattia@monolith.(none)> 1233913180 +0100
+data 17
+Fixed bug #1234.
+from :4
+M 100644 :5 test_latin1.txt
+

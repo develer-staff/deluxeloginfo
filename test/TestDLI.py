@@ -36,6 +36,8 @@ class TestDLI(unittest.TestCase):
 
     def assertEqualDiff(self, first, second, msg=None):
         if not first == second:
+            first = first.encode('utf-8')
+            second = second.encode('utf-8')
             diff = difflib.unified_diff(string.split(first, "\n"),
                                         string.split(second, "\n"),
                                         fromfile="got", tofile="expected",
@@ -72,7 +74,9 @@ class TestDLI(unittest.TestCase):
 
     def runDli(self, start_revision=None, end_revision=None, show_diff=True,
                diff_limit=500, index_entries=0, index_lines=3,
-               show_text=True, show_html=False, verbose=False):
+               show_text=True, show_html=False, verbose=False,
+               web_url=None,
+               bug_url="https://www.develer.com/bugs/show_bug.cgi?id=@BUG@"):
         if os.access(self.output_file, os.F_OK):
             os.remove(self.output_file)
 
@@ -90,6 +94,8 @@ class TestDLI(unittest.TestCase):
             more_args.append("--index-lines=" + str(index_lines))
         if not show_text: more_args.append("--notext")
         if not show_html: more_args.append("--nohtml")
+        if web_url: more_args.append("--weburl=%s" % web_url)
+        if bug_url: more_args.append("--bugurl=%s" % bug_url)
         if verbose: more_args.append("-v")
 
         subprocess.check_call(["./deluxeloginfo", "--by-author", "--rlog",
