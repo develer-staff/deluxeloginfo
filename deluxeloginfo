@@ -83,6 +83,9 @@ sub log_output
 	}
 }
 
+# FIXME - remove this and add filerev subclasses
+sub _head_branch { return $is_svn ? "trunk" : "HEAD"; }
+
 #
 # Hold a file-revision pair
 #
@@ -144,7 +147,7 @@ package FileRev;
 	sub r2 { return shift->{r2} || "NONE"; }
 
 	# Return the branch tag for the file
-	sub tag { return shift->{tag} || "HEAD"; }
+	sub tag { return shift->{tag} || main::_head_branch(); }
 
 	# Return commit timestamp
 	sub date { return shift->{date}; }
@@ -165,7 +168,7 @@ package ChangeSet;
 			author => $author,
 			log => $log,
 			files => [],
-			tag => "HEAD",
+			tags => {},
 			date => "1970/01/01 00:00:00"
 		}, $class;
 	}
@@ -180,8 +183,8 @@ package ChangeSet;
 		# Collect date of newest change
 		$self->{date} = $filerev->{date} if ($self->{date} lt $filerev->{date} );
 
-		# Collect tag - FIXME: only one tag
-		$self->{tag} = $filerev->tag;
+		# Collect tag set
+		$self->{tags}{$filerev->tag} = 1;
 	}
 
 	# Retrieve the author name
@@ -191,7 +194,20 @@ package ChangeSet;
 	sub log { return shift->{log}; }
 
 	# Return the branch tag for the file
-	sub tag { return shift->{tag} || "HEAD"; }
+	sub tags
+	{
+		my $self = shift;
+
+		return %{$self->{tags}} ? keys %{$self->{tags}} : ();
+	}
+
+	sub is_head
+	{
+	    my $self = shift;
+	    my @tags = $self->tags;
+
+	    return @tags == 1 && $tags[0] eq main::_head_branch();
+	}
 
 	# Return an array of FileRev objects
 	sub files
@@ -1203,7 +1219,8 @@ sub format_output($$$$\$)
 	my @files = $changeset->files;
 	my $author = $changeset->author;
 	my $log = $changeset->log;
-	my $tagname = $changeset->tag;
+	my $tagname = join ', ', $changeset->tags;
+	my $many_tags = $changeset->tags > 1;
 
 	log_output("Processing ChangeSet by $author of "
 			   . scalar @files
@@ -1251,7 +1268,7 @@ sub format_output($$$$\$)
 
 	$fmtHtml .= "<a name='cs$csnum'></a>\n";
 	$fmtHtml .= "<table border='0' cellspacing='0' cellpadding='5' width='100%' bgcolor='#eeeeee'>\n";
-	unless ($opt_byauthor and $tagname eq "HEAD")
+	unless ($opt_byauthor and $changeset->is_head())
 	{
 		$fmtHtml .= "<tr><td colspan='3' bgcolor='#dddddd'>\n";
 		unless ($opt_byauthor)
@@ -1259,7 +1276,7 @@ sub format_output($$$$\$)
 			$fmtHtml .= " <font color='#bb2222'><strong>$author</strong></font>\n";
 			$fmtText .= " *$author*";
 		}
-		unless ($tagname eq "HEAD")
+		unless ($changeset->is_head())
 		{
 			$fmtHtml .= " <font color='#225522'><em>(on branch $tagname)</em></font>\n";
 			$fmtText .= " (on branch $tagname)";
@@ -1835,13 +1852,28 @@ sub svn_xml_log($$)
 						$keywords = 'kb';
 					}
 				}
+
+				my $file_path = $path->{content};
+				if ($opt_module)
+				{
+				    $file_path =~ s{$opt_module}{};
+				}
+				my $branch = '';
+				if ($file_path =~ s{^/branches/([^/]+)(?=/)}{})
+				{
+				    $branch = $1;
+				}
+				elsif ($file_path =~ s{^/trunk(?=/)}{})
+				{
+				    # nothing to do
+				}
 				$cslist->add_file($logentry->{author},
 								  $msg,
 								  $repodir,
 								  $path->{content},
 								  $prev,
 								  $rev,
-								  "", # branch
+								  $branch,
 								  $logentry->{date},
 								  $keywords); # keywords
 			}
