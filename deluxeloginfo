@@ -1902,7 +1902,6 @@ sub git_log_branch($$$$)
 	open(RLOG, "-|") || exec @args;
 
 	# initialize vars with the default values
-	my $file = "";
 	my $r1 = "";
 	my $r2 = "";
 	my @log;
@@ -1939,30 +1938,39 @@ sub git_log_branch($$$$)
 		}
 		elsif (/^:.*\.\.\. (.)\d*\s+([^\t\n]+)(?:\t([^\t\n]+))?$/)
 		{
-			$file = $2;
-			if ($1 eq 'A')
+			my $file = my $old_file = $2;
+			my $operation = $1;
+			if ($operation eq 'A')
 			{
 				$r1 = 'NONE';
 			}
-			elsif ($1 eq 'D')
+			elsif ($operation eq 'D')
 			{
 				$r2 = 'NONE';
 			}
-			elsif ($1 eq 'C')
+			elsif ($operation eq 'C')
 			{
 				$file = $3;
 			}
-			elsif ($1 eq 'R')
+			elsif ($operation eq 'R')
 			{
 				$file = $3;
 			}
 			my $log = join "\n", @log, '';
+			# try to detect if file is binary
+			if ($operation ne 'D') {
+				my $diff = `git --git-dir=$gitdir diff $r2^! -- $file`;
+				if ($diff =~ /\nindex .+\nBinary file.+$/)
+				{
+					$keywords = 'kb';
+				}
+			}
 			if (!$seen{$r2})
 			{
-				if ($1 eq 'R')
+				if ($operation eq 'R')
 				{
 					$cslist->add_file($author, $log, $gitdir,
-							  $2, $r1, 'NONE', $branch,
+							  $old_file, $r1, 'NONE', $branch,
 							  $date, $keywords);
 				}
 				$cslist->add_file($author, $log, $gitdir,
