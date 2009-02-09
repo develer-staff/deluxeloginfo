@@ -100,13 +100,9 @@ Binary file addition.
 
 A      4  [BIN] trunk/random.dat
 
-Cannot display: file marked as a binary type.
-
 Binary file modification.
 
 M      5  [BIN] trunk/random.dat
-
-Cannot display: file marked as a binary type.
 
 
 """)

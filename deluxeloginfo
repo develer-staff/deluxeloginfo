@@ -1055,46 +1055,6 @@ sub dodiff($$$$)
 }
 
 #
-# Return an hash with diff contents of all binary files changed in range
-#
-# module, range -> %{filename => diff output}
-#
-sub svn_binaries($$)
-{
-	my ($module, $range) = @_;
-
-	my %binaries;
-	if (!$is_svn or !$range)
-	{
-		return \%binaries;
-	}
-
-	my @args = ('svn', 'diff', "-r$range", "$opt_root/$module");
-	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
-	open(my $fh, "-|") || exec @args;
-
-	my $filename = "";
-	my $contents = "";
-
-	while (<$fh>)
-	{
-		if (/^Index: (.+)/)
-		{
-			$filename = $1;
-			$contents = "";
-		}
-		elsif(/^Cannot display/)
-		{
-			$contents .= $_;
-			$binaries{$filename} = $contents;
-		}
-	}
-	return \%binaries;
-}
-
-
-
-#
 # Escape characters with special meaning for HTML in the passed string(s).
 #
 sub htmlize
@@ -1211,9 +1171,9 @@ sub diff2html($)
 ### END: EXPERIMENTAL/UNUSED CODE ###
 }
 
-sub format_output($$$$\$)
+sub format_output($$$\$)
 {
-	my ($csnum, $changeset, $module, $binaries, $ccrecipients) = @_;
+	my ($csnum, $changeset, $module, $ccrecipients) = @_;
 	my ($fmtText, $fmtHtml, $summary);
 	my $diff = "";
 	my @files = $changeset->files;
@@ -1337,11 +1297,7 @@ sub format_output($$$$\$)
 
 		$fmtHtml .= "<tr><td width='1%'>$statelink</td><td width='1%'>$color$rev$color_end</td><td width='100%'>$binary_text$color$file$color_end</td></tr>\n";
 
-		if ($is_svn && (exists $binaries->{$file}))
-		{
-			$diff .= $binaries->{$file};
-		}
-		elsif ($opt_diff && !$binary_text)
+		if ($opt_diff && !$binary_text)
 		{
 			$diff .= dodiff($module, $file, $r1, $r2);
 		}
@@ -1375,8 +1331,6 @@ sub process_cslist($$$)
 	my $ccrecipients = "";
 	my $csnum = 1;
 
-	my $binaries = svn_binaries($module, $cslist->{range});
-
 	foreach my $author ($cslist->authors)
 	{
 		foreach my $changeset ($cslist->changesets($author))
@@ -1384,7 +1338,6 @@ sub process_cslist($$$)
 			if (my @out = format_output($csnum,
 										$changeset,
 										$module,
-										$binaries,
 										$ccrecipients))
 			{
 				$fmtText .= $out[0];
