@@ -1,0 +1,78 @@
+* Basic usage:
+
+parse the file as a prjtab file
+
+  dli_launcher.py --prjtab /path/to/prjtab
+
+parse the file as an INI file
+
+  dli_launcher.py /path/to/config
+
+parse all the files in the directory as INI files and execute them
+
+  dli_launcher.py /path/to/loginfo.d
+
+* Common options:
+
+  --defaults=FILE   read default options from FILE (see below for format)
+  --verbose         display deluxeloginfo command line just before running it
+  --dry-run         only display what it would do
+
+* Configuration file format:
+
+  Each file is an INI file, it can contain a [defaults] section and
+one section for each deluxeloginfo invocation.  The defaults file
+specified with the --defaults option must contain a [defaults]
+section.
+
+  The possibile keys for each section are:
+
+- dli_path (string)
+path to deluxeloginfo
+
+- html (boolean)
+- text (boolean)
+if false, add --notext/--no-html to dli invocation
+
+- branches (string, comma-separated)
+- diff (boolean)
+- bugurl (string)
+- by_author (boolean)
+- sender (string)
+- difflimit (int)
+- index (int)
+- index_lines (int)
+- maildomain (string)
+- module (string)
+- root (string)
+- sender (string)
+- stampdir (string)
+- to (string)
+all map one-to-one to the corresponding dli options
+
+* Example defaults file:
+
+[defaults]
+dli_path=/usr/local/bin/deluxeloginfo
+by_author=true
+diff=true
+difflimit=500
+index=0
+index_lines=3
+maildomain=develer.com
+text=false
+
+Example configuration for (part of) Caligola:
+
+[defaults]
+maildomain=develer.com
+recipient=caligola@lists.develer.com
+root=svn+ssh://develer@comelz/svn
+bugurl=http://support.comelz.com/default.php?@BUG@
+
+[caligola3d]
+module=caligola3d
+
+[ppc]
+module=ppc
+recipient=ppc@lists.develer.com 
