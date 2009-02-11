@@ -142,6 +142,9 @@ def format_arguments(command):
         else:
             args.append("--%s='%s'" % (key, value))
 
+    if not dli_path:
+        raise Exception("dli_path must be specified to run deluxeloginfo")
+
     return [dli_path] + args
 
 def read_options(config, section, defaults=dict()):
@@ -153,7 +156,9 @@ def read_options(config, section, defaults=dict()):
     options = dict(defaults)
 
     for opt in config.options(section):
-        if opt in BOOL_OPTIONS:
+        if opt == 'branches':
+            options[opt] = string.split(config.get(section, opt), ',')
+        elif opt in BOOL_OPTIONS:
             options[opt] = config.getboolean(section, opt)
         elif opt in INT_OPTIONS:
             options[opt] = config.getint(section, opt)
