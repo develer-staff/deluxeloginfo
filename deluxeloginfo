@@ -42,7 +42,7 @@ my $opt_sender = "cvs\@develer.com";
 my $opt_recipient = '';
 my $opt_outfile = '';
 my $opt_prjtab = '';
-my $opt_rlog;
+my $opt_rlog = 1;
 my $opt_stampdir = '/var/state/loginfo';
 my $opt_byauthor;
 my $opt_maildomain = '';
@@ -2165,7 +2165,7 @@ unless (GetOptions(
 
 	'module=s'	=> \$opt_module,
 	'prjtab=s'	=> \$opt_prjtab,
-	'rlog'		=> \$opt_rlog,
+	'rlog!'		=> \$opt_rlog,
 	'stampdir=s'	=> \$opt_stampdir,
 	'startdate=s'   => \$opt_startdate,
 	'enddate=s'     => \$opt_enddate,
@@ -2274,7 +2274,7 @@ deluxeloginfo [OPTION]... [FILE]...
    --prefix=DIR        repository prefix to strip away in logs
    --module=NAME       CVS module or subtree to work on
    --prjtab=FILE       use FILE as a prjtab file to find repositories
-   --rlog              use remote repository access instead of loginfo files
+   --no-rlog           use loginfo files instead of remote repository access 
    --stampdir=DIR      where to store timestamps for cvs rlog and svn log
                        (default: /var/state/loginfo)
    --startdate=DATE    specify start date instead of picking it from stamp file
