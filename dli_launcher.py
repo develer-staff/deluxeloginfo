@@ -123,7 +123,7 @@ def format_arguments(command):
             continue
 
         if key == 'branches':
-            args.extend(["--branches=%s" % i for i in value])
+            args.extend(["--branch=%s" % i for i in value])
         elif key == 'by_author':
             if value:
                 args.append("--by-author")
@@ -140,7 +140,7 @@ def format_arguments(command):
         elif key == 'dli_path':
             dli_path = value
         else:
-            args.append("--%s='%s'" % (key, value))
+            args.append("--%s=%s" % (key.replace('_', '-'), value))
 
     if not dli_path:
         raise Exception("dli_path must be specified to run deluxeloginfo")
