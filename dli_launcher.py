@@ -12,13 +12,17 @@
 import ConfigParser
 import optparse
 import sys
-import string
 import subprocess
 import os.path
 import os
 
 INT_OPTIONS = set(["difflimit", "index", "index_lines"])
 BOOL_OPTIONS = set(["by_author", "diff", "html", "text"])
+
+def abort(message):
+    print >>sys.stderr, message
+
+    sys.exit(1)
 
 def parse_options():
     """
@@ -90,18 +94,18 @@ def parse_prjtab(prjtab):
     """
     commands = []
 
-    for line in open(prjtab, 'r').readlines():
+    for line in open(prjtab):
         # skip empty/commented lines
         line = line.strip()
         if line.startswith("#"):
             continue
-        if len(line) == 0:
+        if not line:
             continue
 
-        (module, root, email) = string.split(line, None, 3)
+        (module, root, email) = line.split(None, 3)
 
         if not module or not root or not email:
-            raise Exception("Illegal prjtab format: '%s'" % line)
+            abort("Illegal prjtab format: '%s'" % line)
 
         commands.append({"to": email, "root": root,"module": module})
 
@@ -143,7 +147,7 @@ def format_arguments(command):
             args.append("--%s=%s" % (key.replace('_', '-'), value))
 
     if not dli_path:
-        raise Exception("dli_path must be specified to run deluxeloginfo")
+        abort("dli_path must be specified to run deluxeloginfo")
 
     return [dli_path] + args
 
@@ -157,7 +161,7 @@ def read_options(config, section, defaults=dict()):
 
     for opt in config.options(section):
         if opt == 'branches':
-            options[opt] = string.split(config.get(section, opt), ',')
+            options[opt] = config.get(section, opt).split(',')
         elif opt in BOOL_OPTIONS:
             options[opt] = config.getboolean(section, opt)
         elif opt in INT_OPTIONS:
@@ -195,7 +199,7 @@ def execute_dli(command, verbose=False, dry_run=False):
     """
     args = format_arguments(command)
     if verbose or dry_run:
-        print string.join(args, " ")
+        print " ".join(args)
     if not dry_run:
         subprocess.check_call(args)
 
@@ -232,7 +236,7 @@ def main():
                 if os.path.isfile(file):
                     cmd_list.extend(parse_ini_file(file))
         else:
-            raise Exception("Path '%s' is neither file nor directory" % path)
+            abort("Path '%s' is neither file nor directory" % path)
 
     # merge defaults and command-line options and call deluxeloginfo
     for cmd in cmd_list:

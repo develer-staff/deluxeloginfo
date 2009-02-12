@@ -5,7 +5,6 @@ import unittest
 import subprocess
 import re
 import os
-import string
 import difflib
 import codecs
 
@@ -38,12 +37,12 @@ class TestDLI(unittest.TestCase):
         if not first == second:
             first = first.encode('utf-8')
             second = second.encode('utf-8')
-            diff = difflib.unified_diff(string.split(first, "\n"),
-                                        string.split(second, "\n"),
+            diff = difflib.unified_diff(first.split("\n"),
+                                        second.split("\n"),
                                         fromfile="got", tofile="expected",
                                         lineterm="")
             raise self.failureException, \
-                (msg or "\n" + string.join(diff, "\n"))
+                (msg or "\n" + "\n".join(diff))
 
     def setupSvnRepository(self, template, destination):
         subprocess.check_call(["svnadmin", "create", destination])
@@ -70,7 +69,7 @@ class TestDLI(unittest.TestCase):
     def assertTimestamp(self, value):
         stamp = open(timestampPath(repositoryUrl(self.repository_type,
                                                  self.repository_name)), 'r')
-        self.assertEqualDiff(string.join(stamp.readlines(), ""), str(value))
+        self.assertEqualDiff("".join(stamp.readlines()), str(value))
 
     def runDli(self, start_revision=None, end_revision=None, show_diff=True,
                diff_limit=500, index_entries=0, index_lines=3,
@@ -127,7 +126,7 @@ class TestDLI(unittest.TestCase):
                     del lines[i:]
                     break
 
-        return string.join(lines, '')
+        return ''.join(lines)
 
     def setUp(self):
         # if readonly or not there must recreate from dump
