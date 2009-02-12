@@ -32,52 +32,62 @@ def parse_options():
     """
     usage = "Usage: %prog [options] [file|directory]"
     parser = optparse.OptionParser(usage=usage)
+
     parser.add_option("--defaults", metavar="FILE",
                       help="read default options from FILE")
     parser.add_option("--prjtab", action='store_true',
                       help="assume files are in prjtab format")
     parser.add_option("--dli-path", metavar="FILE",
                       help="path to deluxeloginfo executable")
-    parser.add_option("--stampdir", metavar="DIR",
-                      help="where to store timestamps for cvs rlog and svn log")
-    parser.add_option("--branches", metavar="[local|remote|all|<branch-name>]",
-                      action="append",
-                      help="branches to track (Git only); \
-can be specified multiple times")
 
-    parser.add_option("--sender", metavar="ADDR",
-                      help="sender e-mail address for log messages")
-    parser.add_option("--maildomain", metavar="DOMAIN",
-                      help="mail domain for committers (used for From:)")
-    parser.add_option("--to", metavar="ADDR",
-                      help="comma-separated list of mail recipients");
-
-    parser.add_option("--by-author", action="store_true",
-                      help="send one mail for each committer")
-    parser.add_option("--diff", action="store_true",
-                      help="show diff for commits")
-    parser.add_option("--difflimit", metavar="N", type="int",
-                      help="show up to N lines of diff output")
-    parser.add_option("--index", metavar="N", type="int",
-                      help="output a summary of ChangeSets.  If N is specified \
-the index is printed only when it contains at least N ChangeSets. \
-Set to 0 to always print the index")
-    parser.add_option("--index-lines", metavar="N", type="int",
-                      help=" number of log lines in an index entry")
-    parser.add_option("--notext", action="store_false", dest="text",
-                      help="disable text output")
-    parser.add_option("--nohtml", action="store_false", dest="html",
-                      help="disable HTML output")
-
-    parser.add_option("--weburl", metavar="URL",
-                      help="set URL for web revision history viewer")
-    parser.add_option("--bugurl", metavar="URL",
-                      help="set URL for bug database")
-
-    parser.add_option("--verbose", action="store_true",
+    parser.add_option("-v", "--verbose", action="store_true",
                       help="print deluxeloginfo invocations")
     parser.add_option("--dry-run", action="store_true",
                       help="do not execute deluxeloginfo")
+
+    repo = optparse.OptionGroup(parser, "Deluxeloginfo repository options")
+    repo.add_option("--stampdir", metavar="DIR",
+                      help="where to store timestamps for cvs rlog and svn log")
+    repo.add_option("--branches", metavar="[local|remote|all|<branch-name>]",
+                      action="append",
+                      help="branches to track (Git only); \
+can be specified multiple times")
+    parser.add_option_group(repo)
+
+    output = optparse.OptionGroup(parser, "Deluxeloginfo output redirection")
+    output.add_option("--sender", metavar="ADDR",
+                      help="sender e-mail address for log messages")
+    output.add_option("--maildomain", metavar="DOMAIN",
+                      help="mail domain for committers (used for From:)")
+    output.add_option("--to", metavar="ADDR",
+                      help="comma-separated list of mail recipients");
+    parser.add_option_group(output)
+
+    format = optparse.OptionGroup(parser, "Deluxeloginfo output format")
+    format.add_option("--by-author", action="store_true",
+                      help="send one mail for each committer")
+    format.add_option("--diff", action="store_true",
+                      help="show diff for commits")
+    format.add_option("--difflimit", metavar="N", type="int",
+                      help="show up to N lines of diff output")
+    format.add_option("--index", metavar="N", type="int",
+                      help="output a summary of ChangeSets.  If N is specified \
+the index is printed only when it contains at least N ChangeSets. \
+Set to 0 to always print the index")
+    format.add_option("--index-lines", metavar="N", type="int",
+                      help="number of log lines in an index entry")
+    format.add_option("--notext", action="store_false", dest="text",
+                      help="disable text output")
+    format.add_option("--nohtml", action="store_false", dest="html",
+                      help="disable HTML output")
+    parser.add_option_group(format)
+
+    weblink = optparse.OptionGroup(parser, "Deluxeloginfo web link generation")
+    weblink.add_option("--weburl", metavar="URL",
+                       help="set URL for web revision history viewer")
+    weblink.add_option("--bugurl", metavar="URL",
+                       help="set URL for bug database")
+    parser.add_option_group(weblink)
 
     (options, args) = parser.parse_args()
 
