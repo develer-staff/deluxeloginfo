@@ -62,17 +62,17 @@ index_lines=3
 maildomain=develer.com
 text=false
 
-Example configuration for (part of) Caligola:
+Example configuration for (part of) the Python repository
 
 [defaults]
 maildomain=develer.com
-recipient=caligola@lists.develer.com
-root=svn+ssh://develer@comelz/svn
-bugurl=http://support.comelz.com/default.php?@BUG@
+recipient=python-watch@lists.develer.com
+root=http://svn.python.org/projects/
+bugurl=http://bugs.python.org/issue@BUG@
 
-[caligola3d]
-module=caligola3d
+[python]
+module=python
 
-[ppc]
-module=ppc
-recipient=ppc@lists.develer.com 
+[distutils]
+module=distutils
+recipient=distutils-watch@lists.develer.com 
