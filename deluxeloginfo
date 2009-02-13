@@ -2284,7 +2284,7 @@ deluxeloginfo [OPTION]... [FILE]...
    --endrevision=NUM   specify end revision instead of picking it from
                        stamp file (Subversion-only)
    --keeplogs          keep log files instead of rotating them
-   --branches=[local|remote|all|<branch-name>]
+   --branch=[local|remote|all|<branch-name>]
                        branches to track (Git only); can be specified
                        multiple times
           
