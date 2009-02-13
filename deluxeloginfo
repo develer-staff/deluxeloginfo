@@ -967,11 +967,11 @@ sub dodiff($$$$)
 	{
 		if ($r1 eq "NONE")
 		{
-			@args = ('git', "--git-dir=$opt_root/$module", 'show', $r2, '--', $file);
+			@args = ('git', "--git-dir=$opt_root", 'show', $r2, '--', $file);
 		}
 		else
 		{
-			@args = ('git', "--git-dir=$opt_root/$module", 'diff', "$r1..$r2", '--', $file);
+			@args = ('git', "--git-dir=$opt_root", 'diff', "$r1..$r2", '--', $file);
 		}
 	}
 
@@ -1890,7 +1890,7 @@ sub git_log_branch($$$$)
 	#
 	# Extract path prefix from the root
 	#
-	my $gitdir = "$opt_root/$module";
+	my $gitdir = $opt_root;
 	print STDERR "Reading log for branch $branch\n" if $opt_verbose && $branch;
 	print STDERR "Reading log with gitdir='$gitdir'\n" if ($opt_verbose);
 
@@ -1990,7 +1990,7 @@ sub git_log_branch($$$$)
 sub git_log($)
 {
 	my $module = shift;
-	my $gitdir = "$opt_root/$module";
+	my $gitdir = $opt_root;
 
 	# A nested data structure to hold all collected log data
 	my $cslist = CSList->new;
@@ -2025,7 +2025,7 @@ sub git_log($)
 	    }
 	}
 	my @branches = keys %branch_names;
-	my $stamp = stamp_filename($module);
+	my $stamp = stamp_filename(undef);
 	my $range = git_rev_range($stamp, @branches);
 	my %new_tip;
 

@@ -134,6 +134,7 @@ D      7  trunk/README.move
 class TestBasicGit(TestDLI.TestDLI):
     repository_name = 'base.git'
     repository_type = 'git'
+    repository_module = 'git' # to test that it is ignored
     template_path = 'test/repository/base.git.dump'
 
     def testDiffOneRevChange(self):

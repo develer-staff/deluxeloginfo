@@ -26,6 +26,8 @@ def timestampPath(repository_url):
 class TestDLI(unittest.TestCase):
     # 'svn' or 'git'
     repository_type = 'svn'
+    # module name
+    repository_module = None
     # False if test modifies repository
     is_readonly = True
     # If set, (re)creates a .stamp file with the given value
@@ -96,6 +98,8 @@ class TestDLI(unittest.TestCase):
         if web_url: more_args.append("--weburl=%s" % web_url)
         if bug_url: more_args.append("--bugurl=%s" % bug_url)
         if verbose: more_args.append("-v")
+        if self.repository_module:
+            more_args.append("--module=%s" % self.repository_module)
 
         subprocess.check_call(["./deluxeloginfo", "--by-author", "--rlog",
                                "--root=" + repositoryUrl(self.repository_type,
