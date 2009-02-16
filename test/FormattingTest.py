@@ -177,5 +177,36 @@ M 30fbdf4975c0c49d3591e5506d6c33afa3b4ca8e  test_latin1.txt
 
 """)
 
+    # test changes on multiple files
+    def testNonAsciiChars(self):
+        self.assertEqualDiff(self.runDli(start_revision='aaa1319c',
+                                         end_revision='6ac11816'),
+                             """
+ChangeSet Index:
+
+CS1 [#cs1] - Change two files.
+
+Change two files.
+
+A 6ac1181609dc7ca112a942fce6e7cb6b45cd45a7  test2.txt
+A 6ac1181609dc7ca112a942fce6e7cb6b45cd45a7  test_latin1.txt
+
+======================================================================
+--- /dev/null
++++ b/test2.txt
+@@ -0,0 +1 @@
++Change two files.
+
+======================================================================
+--- a/test_latin1.txt
++++ b/test_latin1.txt
+@@ -1 +1 @@
+-Test bugzillate.
++Test two files.
+
+
+
+""")
+
 if __name__ == '__main__':
     unittest.main()

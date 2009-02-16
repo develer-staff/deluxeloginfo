@@ -1916,6 +1916,8 @@ sub git_log_branch($$$$)
 	{
 		if (/^commit ([0-9a-f]+)( |$)/)
 		{
+			# mark previous commit as already seen
+			$seen{$r2} = 1 if $r2;
 			$r1 = `git --git-dir=$gitdir rev-parse $1^`;
 			chomp $r1;
 			$r2 = $1;
@@ -1938,6 +1940,7 @@ sub git_log_branch($$$$)
 		}
 		elsif (/^:.*\.\.\. (.)\d*\s+([^\t\n]+)(?:\t([^\t\n]+))?$/)
 		{
+			next if $seen{$r2};
 			my $file = my $old_file = $2;
 			my $operation = $1;
 			if ($operation eq 'A')
@@ -1965,19 +1968,15 @@ sub git_log_branch($$$$)
 					$keywords = 'kb';
 				}
 			}
-			if (!$seen{$r2})
+			if ($operation eq 'R')
 			{
-				if ($operation eq 'R')
-				{
-					$cslist->add_file($author, $log, $gitdir,
-							  $old_file, $r1, 'NONE', $branch,
-							  $date, $keywords);
-				}
 				$cslist->add_file($author, $log, $gitdir,
-						  $file, $r1, $r2, $branch,
+						  $old_file, $r1, 'NONE', $branch,
 						  $date, $keywords);
 			}
-			$seen{$r2} = 1;
+			$cslist->add_file($author, $log, $gitdir,
+					  $file, $r1, $r2, $branch,
+					  $date, $keywords);
 		}
 	}
 

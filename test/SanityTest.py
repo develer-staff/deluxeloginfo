@@ -262,5 +262,57 @@ M f9b4c81c9c0d64e956d9dcd011e750544938a518  [BIN] random.dat
 
 """)
 
+
+    # some merge commits are more than once in git-whatchanged log
+    def testMergeCommitDedup(self):
+        self.assertEqualDiff(self.runDli(start_revision='bffc9b15',
+                                         end_revision='547adbb9'), """
+ChangeSet Index:
+
+CS1 [#cs1] - Formatting change.
+CS2 [#cs2] - Merge branch 'master' of /home/mattia/devtools/projman/dli/test/repository/base
+
+Formatting change.
+
+M 8355e6d08a0fe321e52bb7718e6e6e5a462c0342  README.txt
+
+======================================================================
+--- a/README.txt
++++ b/README.txt
+@@ -4,8 +4,8 @@ eiusmod tempor incididunt ut labore et dolore magna aliqua.
+   Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+ nisi ut aliquip ex ea commodo consequat.
+ 
+-  Duis aute irure dolor in reprehenderit in voluptate velit esse
++Duis aute irure dolor in reprehenderit in voluptate velit esse
+ cillum dolore eu fugiat nulla pariatur.
+ 
+-  Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
++Excepteur sint occaecat cupidatat non proident, sunt in culpa qui
+ officia deserunt mollit anim id est laborum.
+
+
+Merge branch 'master' of /home/mattia/devtools/projman/dli/test/repository/base
+
+M 547adbb928462536370ca0c4c977affac8682b67  README.txt
+
+======================================================================
+--- a/README.txt
++++ b/README.txt
+@@ -1,7 +1,7 @@
+-  Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
++Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+ eiusmod tempor incididunt ut labore et dolore magna aliqua.
+ 
+-  Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
++Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris
+ nisi ut aliquip ex ea commodo consequat.
+ 
+ Duis aute irure dolor in reprehenderit in voluptate velit esse
+
+
+
+""")
+
 if __name__ == '__main__':
     unittest.main()
