@@ -1,0 +1,234 @@
+SVN-fs-dump-format-version: 2
+
+UUID: 734eecdd-7127-4e56-a71d-78b1436d4bb4
+
+Revision-number: 0
+Prop-content-length: 56
+Content-length: 56
+
+K 8
+svn:date
+V 27
+2009-02-16T13:22:27.692095Z
+PROPS-END
+
+Revision-number: 1
+Prop-content-length: 127
+Content-length: 127
+
+K 7
+svn:log
+V 26
+Basic svn repo structure.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-02-16T13:59:25.383406Z
+PROPS-END
+
+Node-path: branches
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: tags
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: trunk
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Revision-number: 2
+Prop-content-length: 112
+Content-length: 112
+
+K 7
+svn:log
+V 11
+Test file.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-02-16T14:00:22.001619Z
+PROPS-END
+
+Node-path: trunk/test.txt
+Node-kind: file
+Node-action: add
+Prop-content-length: 40
+Text-content-length: 8
+Text-content-md5: eaf1c95c78c9f848636d357788bd4a4c
+Content-length: 48
+
+K 13
+svn:eol-style
+V 6
+native
+PROPS-END
+A test.
+
+
+Revision-number: 3
+Prop-content-length: 117
+Content-length: 117
+
+K 7
+svn:log
+V 16
+Start a branch.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-02-16T14:00:47.428213Z
+PROPS-END
+
+Node-path: branches/bough
+Node-kind: dir
+Node-action: add
+Node-copyfrom-rev: 1
+Node-copyfrom-path: trunk
+Prop-content-length: 34
+Content-length: 34
+
+K 13
+svn:mergeinfo
+V 0
+
+PROPS-END
+
+
+Node-path: branches/bough/test.txt
+Node-kind: file
+Node-action: add
+Node-copyfrom-rev: 2
+Node-copyfrom-path: trunk/test.txt
+Text-copy-source-md5: eaf1c95c78c9f848636d357788bd4a4c
+
+
+Revision-number: 4
+Prop-content-length: 118
+Content-length: 118
+
+K 7
+svn:log
+V 17
+Commit in trunk.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-02-16T14:01:28.822793Z
+PROPS-END
+
+Node-path: trunk/test.txt
+Node-kind: file
+Node-action: change
+Text-content-length: 10
+Text-content-md5: 62d59d83b8073dea51e1c965d206c509
+Content-length: 10
+
+In trunk.
+
+
+Revision-number: 5
+Prop-content-length: 119
+Content-length: 119
+
+K 7
+svn:log
+V 18
+Commit in branch.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-02-16T14:01:58.286853Z
+PROPS-END
+
+Node-path: branches/bough/test.txt
+Node-kind: file
+Node-action: change
+Text-content-length: 11
+Text-content-md5: 8b816096193776d9cbe517ce6f81da8d
+Content-length: 11
+
+In branch.
+
+
+Revision-number: 6
+Prop-content-length: 134
+Content-length: 134
+
+K 7
+svn:log
+V 33
+Commit in both trunk and branch.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-02-16T14:03:12.294593Z
+PROPS-END
+
+Node-path: branches/bough/test.txt
+Node-kind: file
+Node-action: change
+Text-content-length: 14
+Text-content-md5: eda6013b0803dc73b82d471ec66f71c8
+Content-length: 14
+
+In branch (2)
+
+
+Node-path: trunk/test.txt
+Node-kind: file
+Node-action: change
+Text-content-length: 13
+Text-content-md5: 5481f159755befdc29a536fb71e17635
+Content-length: 13
+
+In trunk (2)
+
+
