@@ -1896,7 +1896,7 @@ sub git_log_branch($$$$)
 
 	my $new_tip = `git --git-dir=$gitdir rev-parse $range->[0]`;
 	chomp $new_tip;
-	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '-m',
+	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '--parents', '-m',
 		    '--find-copies-harder', $new_tip, @{$range}[1 ,, $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
@@ -1914,11 +1914,11 @@ sub git_log_branch($$$$)
 
 	while (<RLOG>)
 	{
-		if (/^commit ([0-9a-f]+)( |$)/)
+		if (/^commit ([0-9a-f]+)(?: ([0-9a-f]+)|$)/)
 		{
 			# mark previous commit as already seen
 			$seen{$r2} = 1 if $r2;
-			$r1 = `git --git-dir=$gitdir rev-parse $1^`;
+			$r1 = $2;
 			chomp $r1;
 			$r2 = $1;
 			undef @log;
