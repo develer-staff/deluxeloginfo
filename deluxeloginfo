@@ -41,6 +41,7 @@ my $opt_logfile = '';
 my $opt_sender = "cvs\@develer.com";
 my $opt_recipient = '';
 my $opt_outfile = '';
+my $opt_mail_command = '';
 my $opt_prjtab = '';
 my $opt_rlog = 1;
 my $opt_stampdir = '/var/state/loginfo';
@@ -841,6 +842,7 @@ sub send_mail(\$\$\$$$$$)
 	}
 
 	my $newsgroups = "";
+	my $mail_command = $opt_mail_command;
 
 	# Force recipient if set
 	if ($opt_recipient)
@@ -858,22 +860,20 @@ sub send_mail(\$\$\$$$$$)
 	{
 		$newsgroups = $1;
 		$to = "";
+		$mail_command ||= '/usr/bin/inews -h';
 	}
+	# default to sendmail
+	$mail_command ||= '/usr/lib/sendmail -t';
 
 	if ($opt_outfile)
 	{
 		print STDERR "Writing mail to '$opt_outfile'...\n" if $opt_verbose;
 		open (MAIL, ">>$opt_outfile") or die "Couldn't open outfile: $!";
 	}
-	elsif ($newsgroups)
+	elsif ($newsgroups || $to)
 	{
-		print STDERR "Posting article in '$newsgroups'...\n" if $opt_verbose;
-		open (MAIL, "|/usr/bin/inews -h") or die "Couldn't exec inews: $!";
-	}
-	elsif ($to)
-	{
-		print STDERR "Sending mail to <$to>...\n" if $opt_verbose;
-		open (MAIL, "|/usr/lib/sendmail -t") or die "Couldn't exec sendmail: $!";
+		print STDERR "Sending with '$mail_command'...\n" if $opt_verbose;
+		open (MAIL, "|$mail_command") or die "Couldn't exec '$mail_command': $!";
 	}
 	else
 	{
@@ -2152,6 +2152,7 @@ unless (GetOptions(
 	'sender=s'	=> \$opt_sender,
 	'maildomain=s'	=> \$opt_maildomain,
 	'to|recipient=s'=> \$opt_recipient,
+	'mail-command=s'=> \$opt_mail_command,
 
 	'by-author'	=> \$opt_byauthor,
 	'diff'		=> \$opt_diff,
@@ -2293,6 +2294,8 @@ deluxeloginfo [OPTION]... [FILE]...
    --maildomain=DOMAIN mail domain for committers (used for From:)
    --to=ADDR           comma-separated list of mail recipients or newsgroups
                        (devtools@lists.develer.com or news:comp.lang.c)
+   --mail-command=CMD  command for sending mail; must accept the mail message
+                       on standard input; defaults to 'sendmail -t'
 
  Options for output format:
    --by-author         send one mail for each committer
