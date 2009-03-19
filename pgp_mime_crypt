@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+use strict;
+use warnings;
+
+use MIME::Parser;
+use Mail::GnuPG;
+use Mail::Field::AddrList;
+
+my $p = MIME::Parser->new;
+# avoid writing temporary files while parsing
+$p->output_to_core(1);
+$p->tmp_to_core(1);
+
+my $e = $p->parse(\*STDIN);
+die 'parsing: ', $p->last_error unless $e;
+my $to = Mail::Field->extract('To', $e);
+
+my $g = Mail::GnuPG->new();
+$g->mime_encrypt($e, map $_->address, $to->addr_list)
+    and die "mime_encrypt failed\n", @{$g->{last_message}};
+
+print $e->as_string or die "print failed: $!";
