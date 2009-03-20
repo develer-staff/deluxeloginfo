@@ -7,6 +7,7 @@ from FormattingTest import *
 from TimestampTest import *
 from GitBranchTest import *
 from SvnBranchTest import *
+from HtmlTest import *
 
 if __name__ == '__main__':
     unittest.main()
