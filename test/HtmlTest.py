@@ -150,4 +150,3 @@ class TestGitHtml(TestHtml):
 
 if __name__ == '__main__':
     unittest.main()
-test/repository/module.svn
