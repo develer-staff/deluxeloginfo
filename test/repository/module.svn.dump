@@ -1,0 +1,167 @@
+SVN-fs-dump-format-version: 2
+
+UUID: 4a6bf59a-5df8-48e2-86cb-6f9869605793
+
+Revision-number: 0
+Prop-content-length: 56
+Content-length: 56
+
+K 8
+svn:date
+V 27
+2009-03-20T13:43:24.669901Z
+PROPS-END
+
+Revision-number: 1
+Prop-content-length: 128
+Content-length: 128
+
+K 7
+svn:log
+V 27
+Base repository structure.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-03-20T13:44:51.279019Z
+PROPS-END
+
+Node-path: module_a
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: module_a/branches
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: module_a/tags
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: module_a/trunk
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: module_b
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: module_b/branches
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: module_b/tags
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Node-path: module_b/trunk
+Node-kind: dir
+Node-action: add
+Prop-content-length: 10
+Content-length: 10
+
+PROPS-END
+
+
+Revision-number: 2
+Prop-content-length: 119
+Content-length: 119
+
+K 7
+svn:log
+V 18
+File in module a.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-03-20T13:47:03.229739Z
+PROPS-END
+
+Node-path: module_a/trunk/file_a
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 7
+Text-content-md5: c7f33375edf32d8fb62d4b505c74519a
+Content-length: 17
+
+PROPS-END
+file_a
+
+
+Revision-number: 3
+Prop-content-length: 119
+Content-length: 119
+
+K 7
+svn:log
+V 18
+File in module b.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2009-03-20T13:47:16.387632Z
+PROPS-END
+
+Node-path: module_b/trunk/file_b
+Node-kind: file
+Node-action: add
+Prop-content-length: 10
+Text-content-length: 7
+Text-content-md5: a7004efbb89078ebcc8f21d55354e2f3
+Content-length: 17
+
+PROPS-END
+file_b
+
+
