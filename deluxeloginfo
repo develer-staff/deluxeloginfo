@@ -1276,8 +1276,8 @@ sub format_output($$$\$)
 		if ($opt_weburl)
 		{
 			# Prepend a slash to the module name if needed, define to an empty string otherwise
-			my $module_path = "";
-			$module_path = "/$module" if $module;
+			# TODO move to the backend module when splitted
+			my $module_path = $module && !$is_svn ? "/$module" : "";
 
 			if ($state eq 'M')
 			{
