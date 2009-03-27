@@ -243,7 +243,7 @@ def main():
                 cmd_list.extend(parse_ini_file(path))
         elif os.path.isdir(path):
             for file in map(lambda x: os.path.join(path, x), os.listdir(path)):
-                if os.path.isfile(file):
+                if os.path.isfile(file) and file.endswith(".ini"):
                     cmd_list.extend(parse_ini_file(file))
         else:
             abort("Path '%s' is neither file nor directory" % path)
