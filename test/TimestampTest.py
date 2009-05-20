@@ -44,22 +44,9 @@ CS5 [#cs5] - Binary file modification.
 
 Basic subversion structure.
 
-A      1  branches
-A      1  tags
-A      1  trunk
-
-===================================================================
---- /dev/null
-+++ branches	(revision 1)
-
-===================================================================
---- /dev/null
-+++ tags	(revision 1)
-
-===================================================================
---- /dev/null
-+++ trunk	(revision 1)
-
+A      1  [DIR] branches
+A      1  [DIR] tags
+A      1  [DIR] trunk
 
 Added test file.
 
