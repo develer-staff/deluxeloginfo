@@ -531,7 +531,7 @@ sub svn_info($$)
 	open my $svninfo, "svn info --non-interactive $url 2>/dev/null |" or die;
 	while (<$svninfo>)
 	{
-		if (/^$field: (\d+)/)
+		if (/^$field: (\S+)/)
 		{
 			close $svninfo;
 			return $1;
