@@ -95,9 +95,10 @@ package FileRev;
 	#
 	# Construct a FileRev object
 	#
-	# SYNOPSIS: FileRev->new(repodir, filename, r1, r2, tag, date, keywords)
+	# SYNOPSIS: FileRev->new(repodir, filename, r1, r2, tag, date, keywords,
+	#                        is_directory)
 	#
-	sub new($$$$$$$)
+	sub new($$$$$$$$)
 	{
 		#
 		# Collect arguments and create instance
@@ -110,7 +111,8 @@ package FileRev;
 			r2 => shift,
 			tag => shift,
 			date => shift,
-			keywords => shift
+			keywords => shift,
+			is_directory => shift,
 		};
 		bless $self, $class;
 
@@ -153,8 +155,9 @@ package FileRev;
 	# Return commit timestamp
 	sub date { return shift->{date}; }
 
-	# Tell if this file is binary
+	# Tell if this file is binary/a directory
 	sub is_binary { return shift->{keywords} eq "kb"; }
+	sub is_directory { return shift->{is_directory} }
 
 #
 # Handle a list of changed files, the associated log message and the author
