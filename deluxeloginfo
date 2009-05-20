@@ -513,7 +513,7 @@ sub svn_date_range($$)
 }
 
 #
-# module, field -> value
+# url, field -> value
 # Get specified field's value from svn info output:
 #
 # Path: .
@@ -527,8 +527,8 @@ sub svn_date_range($$)
 #
 sub svn_info($$)
 {
-	my ($module,$field) = @_;
-	open my $svninfo, "svn info --non-interactive $opt_root/$module 2>/dev/null |" or die;
+	my ($url,$field) = @_;
+	open my $svninfo, "svn info --non-interactive $url 2>/dev/null |" or die;
 	while (<$svninfo>)
 	{
 		if (/^$field: (\d+)/)
@@ -545,7 +545,7 @@ sub svn_info($$)
 #
 sub svn_last_changed($)
 {
-	return svn_info(shift, "Last Changed Rev");
+	return svn_info("$opt_root/" . shift, "Last Changed Rev");
 }
 
 #
@@ -553,7 +553,7 @@ sub svn_last_changed($)
 #
 sub svn_head($)
 {
-	return svn_info(shift, "Revision");
+	return svn_info("$opt_root/" . shift, "Revision");
 }
 
 
