@@ -1788,13 +1788,19 @@ sub svn_xml_log($$)
 					utf8::encode($msg);
 				}
 
-				# Fake 'keywords' to recognize binary files
+				# Fake 'keywords' to recognize binary files,
+				# determine if the path is a directory
 				# FIXME batch request for all paths
 				my $keywords = '';
+				my $is_directory;
 				if ($rev)
 				{
 					my $url = $opt_root . $path->{content} .
 						'@' . $logentry->{revision};
+
+					my ($node_type) = svn_info($url, 'Node Kind');
+					$is_directory = $node_type && $node_type eq 'directory';
+
 					my $mime =
 					    `svn propget svn:mime-type $url`;
 					chomp $mime;
@@ -1831,7 +1837,8 @@ sub svn_xml_log($$)
 								  $rev,
 								  $branch,
 								  $logentry->{date},
-								  $keywords); # keywords
+								  $keywords,
+								  $is_directory);
 			}
 		}
 	}
