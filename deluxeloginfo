@@ -835,7 +835,11 @@ sub send_mail(\$\$\$$$$$)
 	}
 
 	my $from;
-	if ($author and $opt_maildomain)
+	if ($author =~ /\@\w/) # should match all e-mail addresses
+	{
+		$from = $author;
+	}
+	elsif ($author and $opt_maildomain)
 	{
 		$from = "$author <$author\@$opt_maildomain>";
 	}
