@@ -17,7 +17,7 @@ import os.path
 import os
 
 INT_OPTIONS = set(["difflimit", "index", "index_lines"])
-BOOL_OPTIONS = set(["by_author", "diff", "html", "text"])
+BOOL_OPTIONS = set(["by_author", "diff", "html", "text", "verbose"])
 
 def abort(message):
     print >>sys.stderr, message
@@ -144,6 +144,9 @@ def format_arguments(command):
         elif key == 'diff':
             if value:
                 args.append("--diff")
+        elif key == 'verbose':
+            if value:
+                args.append("--verbose")
         # negated options are a pain
         elif key == 'html':
             if value != None and not value:
