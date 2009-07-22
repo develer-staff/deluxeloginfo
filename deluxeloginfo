@@ -1922,10 +1922,8 @@ sub git_log_branch($$$$)
 	my $r1 = "";
 	my $r2 = "";
 	my @log;
-	my $directory = "";
 	my $date = "";
 	my $author = "";
-	my $removed = 0;
 	my $keywords = "";
 	my %seen; # whatchanged shows most merges multiple times
 
@@ -1938,7 +1936,11 @@ sub git_log_branch($$$$)
 			$r1 = $2;
 			chomp $r1;
 			$r2 = $1;
+			# clean all variables when a new commit starts
 			undef @log;
+			$date = "";
+			$author = "";
+			$keywords = "";
 		}
 		elsif (/^Author: (.*)$/)
 		{
