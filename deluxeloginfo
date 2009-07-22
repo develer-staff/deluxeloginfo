@@ -66,7 +66,7 @@ my $opt_indexlines = 1;
 my @opt_branches;
 
 # Globals
-my ($is_cvs, $is_svn, $is_git);
+my ($is_svn, $is_git);
 
 #
 # Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
@@ -384,19 +384,6 @@ sub create_empty_file($;$$)
 }
 
 #
-# Return date of a file argument in RFC2822 format (the format CVS understands),
-# or undef if file couldn't be stat'd.
-#
-sub rfc2822_date($)
-{
-	use Date::Format;
-	use File::stat;
-
-	my $st = stat(shift) or return undef;
-	return time2str('%a, %d %b %Y %H:%M:%S %z', $st->mtime, 'UTC')
-}
-
-#
 # Generate unique filename from the repository root and module.
 #
 sub stamp_filename($)
@@ -410,47 +397,6 @@ sub stamp_filename($)
 	$stamp = "$opt_stampdir/$stamp";
 
 	return $stamp;
-}
-
-#
-# Return a date range in the format OLD<NEW from the given stamp file.
-#
-sub cvs_date_range($)
-{
-	my $stamp = shift;
-	my $dates;
-
-	if ($opt_startdate)
-	{
-		$dates = $opt_startdate;
-	}
-	else
-	{
-		# Get timestamp from file, touch it and get filestamp again
-		# (diff since yesterday if no previous stamp file is present).
-		$dates = rfc2822_date($stamp) || "yesterday";
-	}
-
-	$dates .= "<";
-
-	if ($opt_enddate)
-	{
-		$dates .= $opt_enddate;
-	}
-	else
-	{
-		# Create a new file with the current datestamp
-		# (we'll overwrite the old stamp later, only on success)
-		if (! -d $opt_stampdir)
-		{
-			print STDERR "Creating $opt_stampdir since it doesn't exist\n";
-			mkdir $opt_stampdir || die "Can't create $opt_stampdir: $!\n";
-		}
-		create_empty_file("$stamp.new");
-		$dates .= rfc2822_date("$stamp.new");
-	}
-
-	return $dates;
 }
 
 sub svn_date($)
@@ -947,17 +893,7 @@ sub dodiff($$$$)
 	return "" if ($r2 eq "NONE");
 
 	my @args;
-	if ($is_cvs)
-	{
-		# Prepend module name to file name
-		$file = "$module/$file" if $module;
-
-		# Workaround for first revision of added files (does only work with rdiff!)
-		$r1 = "1.0" if ($r1 eq "NONE");
-
-		@args = ('cvs', '-Qfn', "-d$opt_root", 'rdiff', '-kk', "-u$copts", "-r$r1", "-r$r2", $file);
-	}
-	elsif ($is_svn)
+	if ($is_svn)
 	{
 
 		if ($r1 eq "NONE")
@@ -1385,350 +1321,6 @@ sub process_cslist($$$)
 }
 
 #
-# Helper for cvs_rlog().
-# Parse a CVS revision number and return the best guess for its ancestor.
-#
-sub guess_ancestor($)
-{
-	my ($rev) = @_;
-	my $old;
-
-	# New files don't have an ancestor
-	return undef if $rev =~ /1\.1$/;
-
-	# Parse revision numbers such as 1.34 or 1.7.2.42
-	# Assign the radix (i.e.: 1.7.2) and the minor (i.e.: 42)
-	if (my ($radix, $minor) = ($rev =~ /^([\d.]+)\.(\d+)$/))
-	{
-		# Guess the ancestor: usually one less than the new revision
-		--$minor;
-		$old = "$radix.$minor";
-
-		# If the ancestor's minor revision was 0, perhaps we
-		# were working with the first revision of a branch.
-		#
-		# We can't just diff between version 1.9.2.0 and
-		# 1.9.2.1, because the former doesn't exist and CVS
-		# would diff against /dev/null.
-		#
-		# The correct ancestor in this example would be 1.9.
-		#
-		if ($minor <= 0)
-		{
-			($old) = ($radix =~ /^([\d.]+)\.\d+$/);
-		}
-	}
-
-	unless (defined($old))
-	{
-		print STDERR "*** Warning: can't parse revision '$rev'\n";
-	}
-
-	return $old;
-}
-
-#
-# Process commitlog files
-#
-sub cvs_commitlog($$)
-{
-	my ($module, $commitlog) = @_;
-
-	# initialize with the default values
-	my $tagname = "";
-	my $juststarted = 1;
-	my $beforelogmsg = 1;
-	my $directory = "";
-	my $author = "";
-	my $logmessage = "";
-	my $date = "1970/01/01 00:00:00";
-	my @files = ();
-	my $cslist = CSList->new();
-
-	open COMMITLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
-
-	while(<COMMITLOG>)
-	{
-		if ($beforelogmsg)
-		{
-			# Skip empty lines
-			next if /^\s*$/;
-
-			chomp;
-			if    (/^Dir: \s*(.*)$/)    { $directory = $1;   }
-			elsif (/^File: \s*(.+)$/)   { push @files, $1;   }
-			elsif (/^Author: \s*(.+)$/) { $author = $1;      }
-			elsif (/^Date: \s*(.+)$/)   { $date = $1;        }
-			elsif (/^\s*Tag: \s*(\S+)$/){ $tagname = $1;     }
-			elsif (/^Log Message:/)     { $beforelogmsg = 0; }
-			elsif (/^(\S*) (.*)$/ && $juststarted)
-			{
-				# This is for old-style file list (pre CVS 1.12)
-				$directory = $1;
-				$_ = $2;
-
-				# Ignore:
-				#  "dir - New Directory"
-				#  "dir - Imported sources"
-				next if /^- /;
-
-				while (/^([^,]+,(?:NONE|[\d\.]+),(?:NONE|[\d\.]+)) ?(.*)/)
-				{
-					push @files, $1;
-					$_ = $2;
-				}
-			}
-			$juststarted = 0;
-		}
-		else
-		{
-			if (/^---END---$/)
-			{
-				# Remove newlines at end of log
-				while (chomp $logmessage) {}
-
-				foreach my $f (@files)
-				{
-					next if !length($f);
-					next if $f =~ /^- /; # skip "- New Directory" or "- Imported Sources"
-					my ($file, $r1, $r2) = $f =~ /(.+),(.+),(.+)/;
-					my $relfile = $directory ? "$directory/$file" : $file;
-					# FIXME: no way to tell if a file is binary?
-					$cslist->add_file($author, $logmessage, "", $relfile, $r1, $r2, $tagname, $date, 'kv');
-				}
-
-				# Restart
-				@files = ();
-				$directory = "";
-				$logmessage = "";
-				$juststarted = 1;
-				$beforelogmsg = 1;
-				$tagname = "";
-				$date = "1970/01/01 00:00:00";
-			}
-			else
-			{
-				# Collect log message
-				$logmessage .= $_;
-			}
-		}
-	}
-
-	close COMMITLOG;
-
-	# Rotate log file
-	if (!$opt_keeplogs)
-	{
-		my $oldlog = $commitlog;
-		if ($commitlog =~ /^(.*)\.new$/)
-		{
-			$oldlog = $1;
-		}
-		else
-		{
-			$oldlog = "$commitlog.old";
-		}
-
-		append_file($commitlog, $oldlog);
-		create_empty_file($commitlog, "cvs", 0660);
-	}
-
-	return $cslist;
-}
-
-#
-# Process cvs rlog output
-#
-sub cvs_rlog($$)
-{
-	my ($module, $commitlog) = @_;
-	my $stamp;
-
-	#
-	# Extract path prefix from the root
-	#
-	my $cvsdir;
-
-	if ($opt_prefix)
-	{
-		$cvsdir = $opt_prefix;
-	}
-	elsif ($opt_root)
-	{
-		if ($opt_root =~ /^\//) {
-			$cvsdir = "$opt_root/$module";
-		}
-		elsif ($opt_root =~ /^:[^:@]*:[^:@]*@[^:@]*:([^:@]+)$/)
-		{
-			$cvsdir = $1;
-		}
-	}
-	print STDERR "Reading rlog with cvsdir='$cvsdir'\n" if ($opt_verbose);
-
-	if ($commitlog)
-	{
-		open RLOG, "< $commitlog" or die "couldn't open '$commitlog': $!\n";
-	}
-	else
-	{
-		$stamp = stamp_filename($module);
-		my $date_range = cvs_date_range($stamp);
-
-		# NOTE: $module may be an empty string, which is fine with CVS
-		#       as it means "fetch the repository root".
-		my @args = ('cvs', '-Qfn', "-d$opt_root", 'rlog', "-d$date_range", "$module");
-		print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
-		open(RLOG, "-|") || exec @args;
-	}
-
-	# A nested data structure to hold all collected log data
-	my $cslist = CSList->new;
-
-	# initialize vars with the default values
-	my $file = "";
-	my $r2 = "";
-	my $log = "";
-	my $directory = "";
-	my $date = "";
-	my $author = "";
-	my $removed = 0;
-	my $keywords = "";
-	my %rev_tags;
-
-	# Parser states:
-	#  1 - parsing file header
-	#  2 - parsing revision log
-	#  3 - parsing revision message
-	my $state = 1;
-
-	LOOP: while(<RLOG>)
-	{
-		if ($state == 1) # parse the header
-		{
-			if (/^RCS file: (.*)$/)
-			{
-				$file = $1;
-				%rev_tags = ();
-			}
-			elsif (/^keyword substitution: (.*)$/)
-			{
-				$keywords = $1;
-			}
-			elsif (/^symbolic names:/)
-			{
-				# Collect list of branches and tags:
-				#
-				#   LONDON_DEMO: 1.23
-				#   RELEASE_1_0: 1.14
-				#   RELEASE_1_0_PATCHES: 1.23.0.6
-				#
-				while(<RLOG>)
-				{
-					# Extract the branch name and its revision
-					if (my ($tag, $r) = /^\t(.*): (.*)$/)
-					{
-						my @rev = split(/\./, $r);
-
-						# Revisions such as "1.27" are obviously not branches
-						next if @rev <= 2;
-
-						# Branch tags have the second last revision number
-						# fixed to 0 (e.g.: 1.23.0.6)
-						next unless ($rev[$#rev - 1] == 0);
-
-						# Chop away the second last revision number
-						@rev = @rev[0 .. ($#rev-2), $#rev];
-
-						# Rebuild the branch revision (e.g.: 1.23.6)
-						$r = join('.', @rev);
-
-						# Create both a direct and reverse
-						# mapping to retrieve branches.
-						$rev_tags{$r} = $tag;
-					}
-					else
-					{
-						# bail out on end of tag list,
-						# reprocessing last input as a valid keyword.
-						redo LOOP;
-					}
-				}
-			}
-			elsif (/^---/)
-			{
-				$state = 2;
-				$author = "UNKNOWN";
-				$removed = 0;
-			}
-		}
-		elsif ($state == 2) # parse revision log
-		{
-			# EXAMPLE: date: 2003/11/26 19:46:57;  author: codewiz;  state: dead;  lines: +0 -0
-			if (/^date: *([^;]*); *author: *([^;]*); *state:([^;]*);/)
-			{
-				$date = $1;
-				$author = $2;
-				$removed = ($3 =~ /dead/) ? 1 : 0;
-				$state = 3;
-			}
-			elsif (/^revision (.*)/)
-			{
-				# This is the new revision
-				$r2 = $1;
-			}
-			elsif (/^===/)
-			{
-				$state = 1;
-			}
-		}
-		elsif ($state == 3) # parse log message
-		{
-			# End of log message?
-			if (/^---/ or /^===/)
-			{
-				# Compute old/new revision numbers
-				my $r1 = guess_ancestor($r2);
-				undef $r2 if $removed;
-
-				# Try to match the file revision with a branch tag
-				# Make sure we have a branch revision number
-				# which is composed by at least 4 components.
-				#
-				# We throw away the minor revision number which
-				# we don't need in order to match the branch number.
-				#
-				my ($tagname, $r);
-				$r = $r2 || $r1;
-				if ((($r) = ($r =~ /^(\d+(?:.\d+){2,})\.\d+$/)))
-				{
-					$tagname = $rev_tags{$r} || "UNKNOWN";
-				}
-
-				$cslist->add_file($author, $log, $cvsdir, $file, $r1, $r2,
-								  $tagname, $date, $keywords);
-
-				$log = "";
-				$state = 2;
-				$state = 1 if (/^===/);
-			}
-			else
-			{
-				# Append log line
-				$log .= $_;
-			}
-		}
-	} # end while(<>)
-
-	close RLOG;
-	die "Reading cvs rlog failed: $!" if $?;
-
-	# Commit date for next log
-	rename "$stamp.new", "$stamp" if ($stamp);
-
-	return $cslist;
-}
-
-#
 # Read svn log in XML format.
 # svn log command, repository path -> CSList
 # Output tree (svn log -v --xml):
@@ -2087,62 +1679,33 @@ sub dolog($$$)
 		print STDERR "...\n";
 	}
 
-	if ($opt_root)
+	# Match "protocol://path"
+	$is_svn = ($opt_root =~ m{^[\w\+]+://(\w+@|)(/|)(?:[-\w\.]+/*)+$});
+
+	# Match "git" - FIXME: just a placeholder
+	$is_git = ($opt_root =~ m{^git}) || ($opt_root =~ m{\.git$});
+
+	# None? Try to guess from local repository
+	if (!($is_svn or $is_git))
 	{
-		# Match ":protocol:user@host:path"
-		$is_cvs = ($opt_root =~ m{^:[^:@]*:[^:@]*@[^:@]*:[^:@]+$});
+		# Maybe it's a local path, try to determine whether it's SVN
+		$is_svn = (-f "$opt_root/format");
+		#TODO: add git
 
-		# Match "protocol://path"
-		$is_svn = ($opt_root =~ m{^[\w\+]+://(\w+@|)(/|)(?:[-\w\.]+/*)+$});
-
-		# Match "git" - FIXME: just a placeholder
-		$is_git = ($opt_root =~ m{^git}) || ($opt_root =~ m{\.git$});
-
-		# None? Try to guess from local repository
-		if (!($is_cvs or $is_svn or $is_git))
-		{
-			# Maybe it's a local path, try to determine whether it's CVS or SVN
-			$is_cvs = (-d "$opt_root/CVSROOT");
-			$is_svn = (-f "$opt_root/format");
-			#TODO: add git
-
-			print STDERR "Root appears to be a CVS local repository.\n" if $opt_verbose and $is_cvs;
-			print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
-		}
-
-		# Multiple matches? Something weird must have happened...
-		$is_cvs ||= 0; $is_svn ||= 0; $is_git ||= 0;
-		if (($is_cvs + $is_svn + $is_git) > 1) { die "Ambiguous root path '$opt_root'" };
-	}
-	else
-	{
-		# For now, we only support CVS with commitlog
-		$is_cvs = 1;
-		print STDERR "Assuming CVS since no --root given.\n" if $opt_verbose;
+		print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
 	}
 
-	if ($is_cvs)
-	{
-		if ($opt_rlog)
-		{
-			$cslist = $opt_rlog ? cvs_rlog($module, $commitlog) : cvs_commitlog($module, $commitlog);
-		}
-		else
-		{
-			$cslist = cvs_commitlog($module, $commitlog);
-		}
-	}
-	elsif ($is_svn)
-	{
-		$opt_rlog or die "SVN only supported through --rlog";
+	# Multiple matches? Something weird must have happened...
+	$is_svn ||= 0; $is_git ||= 0;
+	if (($is_svn + $is_git) > 1) { die "Ambiguous root path '$opt_root'" };
 
+	if ($is_svn)
+	{
 		# FIXME: use svn info to infer $opt_module or die if --root does not match repository root
 		$cslist = svn_rlog($module, $commitlog);
 	}
 	elsif ($is_git)
 	{
-		# $opt_rlog and die "--rlog doesn't make any sense with GIT";
-
 		$cslist = git_log($module);
 	}
 	else
@@ -2207,9 +1770,9 @@ unless (GetOptions(
 	exit(1);
 }
 
-if (($opt_prjtab || $opt_rlog) && @ARGV)
+if (@ARGV)
 {
-	print STDERR "ERROR: input file arguments are mutually exclusive with --rlog and --prjtab modes.\n";
+	print STDERR "ERROR: extra arguments on command line (there is no commitlog support anymore)\n";
 	pod2usage(1);
 }
 
@@ -2263,30 +1826,16 @@ elsif ($opt_rlog)
 	# Fetch from SCM
 	dolog($opt_module, undef, $opt_recipient);
 }
-else
-{
-	if (!@ARGV)
-	{
-		print STDERR "ERROR: no log files provided as input.\n";
-		pod2usage(1);
-	}
-
-	# Process command line arguments
-	while(my $logfile = shift @ARGV)
-	{
-		dolog($opt_module, $logfile, $opt_recipient);
-	}
-}
 
 __END__
 
 =head1 NAME
 
-deluxeloginfo - Generate commit logs for CVS or SVN
+deluxeloginfo - Generate commit logs for SVN or Git
 
 =head1 SYNOPSIS
 
-deluxeloginfo [OPTION]... [FILE]...
+deluxeloginfo [OPTION]...
 
  Options to specify the repository:
    --root=ROOT         base repository path
@@ -2340,15 +1889,6 @@ deluxeloginfo [OPTION]... [FILE]...
 
 =head1 USAGE
 
-Add this line to your CVSROOT/loginfo:
-
-   # For CVS 1.11.x
-   ALL (echo %{sVv}; echo "Author: $USER"; cat ; echo "---END---") >> $CVSROOT/commitlog.new
-
-   # For CVS 1.12.x
-   ALL perl -e 'print "Author: ".shift()."\nDir: ".shift()."\n"; while(@ARGV) { print "File: ".shift().",".shift().",".shift()."\n" } while(<STDIN>) { print }; print "---END---\n"' $USER %p %{sVv} >> $CVSROOT/commitlog.new
-
-
 Put something like this in your crontab:
 
    29 */6 * * * root /usr/local/bin/deluxeloginfo \
@@ -2356,7 +1896,7 @@ Put something like this in your crontab:
        --weburl="http://cvs.develer.com/viewcvs.cgi" \
        --bugurl="http://bugs.develer.com/show_bug.cgi?id=@BUG@"
 
-If you have multiple CVS repositories, you can process all them at once
+If you have multiple repositories, you can process all them at once
 by setting up a project description file like this:
 
    #NAME	ROOT					RECIPIENTS
