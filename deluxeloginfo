@@ -1506,7 +1506,7 @@ sub git_log_branch($$$$)
 	my $new_tip = `git --git-dir=$gitdir rev-parse $range->[0]`;
 	chomp $new_tip;
 	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '--parents', '-m',
-		    '--find-copies-harder', $new_tip, @{$range}[1 ,, $#$range]);
+		    '--find-copies-harder', $new_tip, @{$range}[1 .. $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
 
