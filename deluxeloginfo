@@ -592,7 +592,6 @@ sub git_rev_range($\@)
 		die "for Git, specify both start and end revision or none";
 	}
 
-	my $last_diff = 'HEAD~100';
 	if ($opt_startrevision)
 	{
 		return { _ => [ $opt_endrevision, "^$opt_startrevision" ] };
