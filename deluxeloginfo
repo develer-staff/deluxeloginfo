@@ -2088,7 +2088,7 @@ deluxeloginfo [OPTION]...
                        stamp file (Subversion-only)
    --keeplogs          keep log files instead of rotating them
    --branch=[local|remote|all|<branch-name>]
-                       branches to track (Git only); can be specified
+                       branches to track (Git and Hg only); can be specified
                        multiple times
           
  Options for output redirection:
