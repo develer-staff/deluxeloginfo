@@ -66,7 +66,7 @@ my $opt_indexlines = 1;
 my @opt_branches;
 
 # Globals
-my ($is_svn, $is_git);
+my ($is_svn, $is_git, $is_hg);
 
 #
 # Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
@@ -637,6 +637,66 @@ sub git_rev_range($\@)
 	}
 }
 
+#
+# timestamp_filename -> revision range
+#
+# Build hg revision range.
+#
+sub hg_rev_range($\@)
+{
+	my $filename = shift;
+	my $branches = shift;
+
+	if ($opt_endrevision && !$opt_startrevision)
+	{
+		die "for hg, specify both start and end revision or none";
+	}
+
+	if ($opt_startrevision)
+	{
+		return { _ => [ $opt_endrevision, $opt_startrevision ] };
+	}
+	else
+	{
+		my %revisions;
+		if (open my $revision, $filename)
+		{
+			while (defined (my $line = <$revision>))
+			{
+				next if $line =~ /^\s*$/;
+				$line =~ /^(\S+)\s(\S+)$/
+				  or die "Invalid stamp line: '$line'";
+				$revisions{$2} = [ $2, $1 ];
+			}
+
+			# add ranges for newly-created branches; this
+			# will list revisions once even in case of
+			# multiple branches created between two dli
+			# runs; revisions might be attributed to the
+			# "wrong" branch but there is no way around it
+			my @old_branches = grep $revisions{$_}, @$branches;
+			my @new_branches = grep !$revisions{$_}, @$branches;
+			foreach my $branch (@new_branches)
+			{
+				$revisions{$branch} =
+				  [ $branch, map "$_", @old_branches ];
+				push @old_branches, $branch;
+			}
+		}
+		else
+		{
+			print STDERR "Warning: can't find last rev file: $filename\n" if $opt_verbose;
+			foreach my $branch (@$branches)
+			{
+				$revisions{$branch} =
+				  [ $branch, "tip" ];
+			}
+		}
+
+		return \%revisions;
+	}
+}
+
 sub bugzillate($)
 {
 	return unless $opt_bugurl;
@@ -914,6 +974,17 @@ sub dodiff($$$$)
 		else
 		{
 			@args = ('git', "--git-dir=$opt_root", 'diff', "$r1..$r2", '--', $file);
+		}
+	}
+	elsif ($is_hg)
+	{
+		if ($r1 eq "NONE")
+		{
+			@args = ('hg', 'diff', '-R', $opt_root, '-c', $r2, "$opt_root/$file");
+		}
+		else
+		{
+			@args = ('hg', 'diff', '-R', $opt_root, '-r', "$r1:$r2", "$opt_root/$file");
 		}
 	}
 
@@ -1596,6 +1667,104 @@ sub git_log_branch($$$$)
 	return $new_tip;
 }
 
+#
+# Process hg log output
+#
+sub hg_log_branch($$$$)
+{
+	my $module = shift;
+	my $branch = shift;
+	my $range = shift;
+	my $cslist = shift;
+
+	#
+	# Extract path prefix from the root
+	#
+	my $hgdir = $opt_root;
+	print STDERR "Reading log for branch $branch\n" if $opt_verbose && $branch;
+	print STDERR "Reading log with hgdir='$hgdir'\n" if ($opt_verbose);
+
+	my $new_tip = `hg identify -R $hgdir -r $range->[0] -i`;
+	chomp $new_tip;
+	my @args = ('hg', 'log', '-R', $hgdir, '-b', $branch, '--template', '__START__\nchangeset: {node}\nauthor: {author}\ndate: {date|rfc822date}\nfiles: {files}\nfile_adds: {file_adds}\nfile_dels: {file_dels}\n{desc}\n__END__\n', '-r', $new_tip.':'.@{$range}[1 .. $#$range]);
+	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
+	open(RLOG, "-|") || exec @args;
+
+	# initialize vars with the default values
+	my $r1 = "";
+	my $r2 = "";
+
+	my $date = "";
+	my $author = "";
+	my @log;
+	my %files;
+
+	while (<RLOG>)
+	{
+		if (/^__START__$/)
+		{
+			$date = '';
+			$author = '';
+			undef @log;
+			undef %files;
+		}
+		elsif (/^__END__$/)
+		{
+			my $log = join "\n", @log, '';
+			foreach my $file (keys(%files)) {
+				$cslist->add_file($author, $log, $hgdir, $file, $files{$file}[0], $files{$file}[1], $branch, $date, "");
+			}
+		}
+		elsif (/^changeset: ([0-9a-f]+)$/)
+		{
+			$r1 = $r2;
+			$r2 = $1;
+		}
+		elsif (/^author: (.+)$/)
+		{
+			$author = $1;
+		}
+		elsif (/^date: (.+)$/)
+		{
+			use Date::Format qw(time2str);
+			use HTTP::Date qw(str2time);
+			$date = time2str('%Y-%m-%dT%H:%M:%SZ', str2time($1));
+		}
+		elsif (/^files: (.+)$/)
+		{
+			my @files = split(/\s/, $1);
+		
+			foreach my $file (@files) {
+				$files{$file} = [$r1, $r2];
+			}
+		}
+		elsif (/^file_adds: (.*)$/)
+		{
+			my @adds = split(/\s/, $1);
+
+			foreach my $file (@adds) {
+				$files{$file}[0] = 'NONE';
+			}
+		}
+		elsif (/^file_dels: (.*)$/)
+		{
+			my @dels = split(/\s/, $1);
+
+			foreach my $file (@dels) {
+				$files{$file}[1] = 'NONE';
+			}
+		}
+		else {
+			push @log, $_ if length $_;
+		}
+	}
+
+	close RLOG;
+	die "Reading hg log failed: $!" if $?;
+
+	return $new_tip;
+}
+
 sub git_log($)
 {
 	my $module = shift;
@@ -1665,6 +1834,61 @@ sub git_log($)
 	return $cslist;
 }
 
+sub hg_log($)
+{
+	my $module = shift;
+	my $hgdir = $opt_root;
+
+	# A nested data structure to hold all collected log data
+	my $cslist = CSList->new;
+
+	my %branch_names;
+	my $branch_options = '';
+	foreach my $branch (@opt_branches)
+	{
+		$branch_names{$branch} = 1;
+	}
+	if (defined $branch_options)
+	{
+		foreach my $branch (`hg -R $hgdir branches $branch_options`)
+		{
+			chomp $branch;
+			$branch =~ /^(\S+)\s/;
+			$branch_names{$1} = 1;
+		}
+	}
+	my @branches = keys %branch_names;
+	my $stamp = stamp_filename(undef);
+	my $range = hg_rev_range($stamp, @branches);
+	my %new_tip;
+
+	# FIXME make hg_rev_range return value uniform
+	if ($opt_startrevision)
+	{
+		hg_log_branch($module, undef, $range->{_}, $cslist);
+	}
+	else
+	{
+		foreach my $branch (@branches)
+		{
+			$new_tip{$branch} =
+			  hg_log_branch($module, $branch, $range->{$branch},
+					 $cslist);
+		}
+	}
+
+	if (!$opt_startrevision)
+	{
+		create_empty_file("$stamp.new");
+		open my $lastrev, '>', "$stamp.new";
+		print $lastrev "$new_tip{$_} $_\n" foreach sort keys %new_tip;
+		close $lastrev;
+		rename "$stamp.new", "$stamp";
+	}
+
+	return $cslist;
+}
+
 sub dolog($$$)
 {
 	my ($module, $commitlog, $recipient) = @_;
@@ -1684,8 +1908,11 @@ sub dolog($$$)
 	# Match "git" - FIXME: just a placeholder
 	$is_git = ($opt_root =~ m{^git}) || ($opt_root =~ m{\.git$});
 
+	# Match "hg" - FIXME: just a placeholder
+	$is_hg = ($opt_root =~ m{^hg}) || ($opt_root =~ m{\.hg$});
+
 	# None? Try to guess from local repository
-	if (!($is_svn or $is_git))
+	if (!($is_svn or $is_git or $is_hg))
 	{
 		# Maybe it's a local path, try to determine whether it's SVN
 		$is_svn = (-f "$opt_root/format");
@@ -1695,8 +1922,8 @@ sub dolog($$$)
 	}
 
 	# Multiple matches? Something weird must have happened...
-	$is_svn ||= 0; $is_git ||= 0;
-	if (($is_svn + $is_git) > 1) { die "Ambiguous root path '$opt_root'" };
+	$is_svn ||= 0; $is_git ||= 0; $is_hg ||= 0;
+	if (($is_svn + $is_git + $is_hg) > 1) { die "Ambiguous root path '$opt_root'" };
 
 	if ($is_svn)
 	{
@@ -1706,6 +1933,10 @@ sub dolog($$$)
 	elsif ($is_git)
 	{
 		$cslist = git_log($module);
+	}
+	elsif($is_hg)
+	{
+		$cslist = hg_log($module);
 	}
 	else
 	{
