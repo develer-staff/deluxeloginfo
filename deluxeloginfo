@@ -1015,6 +1015,13 @@ sub dodiff($$$$)
 		    $_ = ('=' x 70) . "\n";
 		}
 
+		if ($is_hg)
+		{
+			if (/^diff/) {
+				$_ = ('=' x 70) . "\n";
+			}
+		}
+
 		$cnt++;
 
 		# Truncate diff when it exceeds <difflimit>
