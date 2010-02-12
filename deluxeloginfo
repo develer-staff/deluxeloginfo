@@ -1843,17 +1843,15 @@ sub hg_log($)
 	my $cslist = CSList->new;
 
 	my %branch_names;
-	my $branch_options = '';
 	foreach my $branch (@opt_branches)
 	{
 		$branch_names{$branch} = 1;
 	}
-	if (defined $branch_options)
+	if (!%branch_names)
 	{
-		foreach my $branch (`hg -R $hgdir branches $branch_options`)
+		foreach my $branch (`hg -R $hgdir branches`)
 		{
-			chomp $branch;
-			$branch =~ /^(\S+)\s/;
+			$branch =~ /^(\S+)/;
 			$branch_names{$1} = 1;
 		}
 	}
