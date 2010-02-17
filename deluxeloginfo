@@ -978,14 +978,7 @@ sub dodiff($$$$)
 	}
 	elsif ($is_hg)
 	{
-		if ($r1 eq "NONE")
-		{
-			@args = ('hg', 'diff', '-R', $opt_root, '-c', $r2, "$opt_root/$file");
-		}
-		else
-		{
-			@args = ('hg', 'diff', '-R', $opt_root, '-r', "$r1:$r2", "$opt_root/$file");
-		}
+		@args = ('hg', 'diff', '-R', $opt_root, '-c', $r2, "$opt_root/$file");
 	}
 
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
