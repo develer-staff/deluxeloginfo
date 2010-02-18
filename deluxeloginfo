@@ -978,7 +978,14 @@ sub dodiff($$$$)
 	}
 	elsif ($is_hg)
 	{
-		@args = ('hg', 'diff', '-R', $opt_root, '-c', $r2, "$opt_root/$file");
+		if ($r2 eq "NONE")
+		{
+			@args = ('hg', 'diff', '--cwd', $opt_root, '-r', "$r1:$r2", "$file");
+		}
+		else
+		{
+			@args = ('hg', 'diff', '--cwd', $opt_root, '-c', $r2, "$file");
+		}
 	}
 
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
@@ -1686,13 +1693,20 @@ sub hg_log_branch($$$$)
 
 	my $new_tip = `hg identify -R $hgdir -r $range->[0] -i`;
 	chomp $new_tip;
-	my @args = ('hg', 'log', '-R', $hgdir, '-b', $branch, '--template', '__START__\nchangeset: {node}\nauthor: {author}\ndate: {date|rfc822date}\nfiles: {files}\nfile_adds: {file_adds}\nfile_dels: {file_dels}\n{desc}\n__END__\n', '-r', $new_tip.':'.@{$range}[1 .. $#$range]);
+
+	# No changes
+	if (@{$range}[1 .. $#$range] and $new_tip eq @{$range}[1 .. $#$range])
+	{
+		return $new_tip
+	}
+
+	my @args = ('hg', 'log', '--cwd', $hgdir, '-b', $branch, '--template', '__START__\nchangeset: {node}\nauthor: {author}\ndate: {date|rfc822date}\nfiles: {files}\nfile_adds: {file_adds}\nfile_dels: {file_dels}\n{desc}\n__END__\n', '-r', $new_tip.':'.@{$range}[1 .. $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
 
 	# initialize vars with the default values
 	my $r1 = "";
-	my $r2 = "";
+	my $r2 = $new_tip;
 
 	my $date = "";
 	my $author = "";
