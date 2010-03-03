@@ -52,6 +52,8 @@ def parse_options():
                       action="append",
                       help="branches to track (Git only); \
 can be specified multiple times")
+    repo.add_option("--svn-config-dir", metavar="DIR",
+                    help="Subversion client configuration directory")
     parser.add_option_group(repo)
 
     output = optparse.OptionGroup(parser, "Deluxeloginfo output redirection")

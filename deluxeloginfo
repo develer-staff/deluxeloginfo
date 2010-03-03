@@ -63,10 +63,12 @@ my $opt_prefix = '';
 my $opt_module = '';
 my $opt_index = 999;
 my $opt_indexlines = 1;
+my $opt_svn_config_dir;
 my @opt_branches;
 
 # Globals
 my ($is_svn, $is_git, $is_hg);
+my @svn_global_options;
 
 #
 # Print a message (arg 1) followed by an optional multi-line preformatted block (arg 2)
@@ -477,7 +479,7 @@ sub svn_date_range($$)
 sub svn_info($$)
 {
 	my ($url,$field) = @_;
-	open my $svninfo, "svn info --non-interactive $url 2>/dev/null |" or die;
+	open my $svninfo, "svn @svn_global_options info --non-interactive $url 2>/dev/null |" or die;
 	while (<$svninfo>)
 	{
 		if (/^$field: (\S+)/)
@@ -957,12 +959,12 @@ sub dodiff($$$$)
 
 		if ($r1 eq "NONE")
 		{
-			@args = ('svn', 'cat', "-r$r2", "$opt_root/$file\@$r2");
+			@args = ('svn', @svn_global_options, 'cat', "-r$r2", "$opt_root/$file\@$r2");
 			$is_diff = 0;
 		}
 		else
 		{
-			@args = ('svn', 'diff', "-r$r1:$r2", "$opt_root/$file\@$r2");
+			@args = ('svn', @svn_global_options, 'diff', "-r$r1:$r2", "$opt_root/$file\@$r2");
 		}
 	}
 	elsif ($is_git)
@@ -1478,7 +1480,7 @@ sub svn_xml_log($$)
 					$is_directory = $node_type && $node_type eq 'directory';
 
 					my $mime =
-					    `svn propget svn:mime-type $url`;
+					    `svn @svn_global_options propget svn:mime-type $url`;
 					chomp $mime;
 					if (!defined $mime || !length($mime) ||
 					    grep $mime =~ $_, @text_mime_types)
@@ -1556,7 +1558,7 @@ sub svn_rlog($$)
 	}
 	my @args = $commitlog
 		? ('cat', "$commitlog")
-		: ('svn', 'log', '--non-interactive', '-v', '--xml', "-r$range", "$opt_root/$module");
+		: ('svn', @svn_global_options, 'log', '--non-interactive', '-v', '--xml', "-r$range", "$opt_root/$module");
 	my $cslist = svn_xml_log(\@args, $repodir);
 	rename "$stamp.new", "$stamp" if ($stamp);
 	$cslist->set_revision_range($range);
@@ -1999,6 +2001,7 @@ unless (GetOptions(
 	'root|cvsroot=s'=> \$opt_root,
 	'prefix|cvsprefix=s' => \$opt_prefix,
 	'branch=s'      => \@opt_branches,
+	'svn-config-dir=s'=> \$opt_svn_config_dir,
 
 	'weburl|cvsurl=s' => \$opt_weburl,
 	'bugurl=s'	=> \$opt_bugurl,
@@ -2011,6 +2014,9 @@ unless (GetOptions(
 	print STDERR "Try '$0 --help' for more information.\n";
 	exit(1);
 }
+
+@svn_global_options = ("--config-dir=$opt_svn_config_dir")
+    if $opt_svn_config_dir;
 
 if (@ARGV)
 {
@@ -2097,6 +2103,7 @@ deluxeloginfo [OPTION]...
    --branch=[local|remote|all|<branch-name>]
                        branches to track (Git and Hg only); can be specified
                        multiple times
+   --svn-config-dir    alternative directory for SVN configuration
           
  Options for output redirection:
    -o, --outfile=FILE  use FILE as output instead of sending mail
