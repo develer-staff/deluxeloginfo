@@ -1476,11 +1476,14 @@ sub svn_xml_log($$)
 					my $url = $opt_root . $path->{content} .
 						'@' . $logentry->{revision};
 
+					print STDERR "Checking if $url is a directory\n" if $opt_verbose;
 					my ($node_type) = svn_info($url, 'Node Kind');
 					$is_directory = $node_type && $node_type eq 'directory';
 
+					print STDERR "Checking mimetype for $url\n" if $opt_verbose;
+
 					my $mime =
-					    `svn @svn_global_options propget svn:mime-type $url`;
+					    `svn @svn_global_options propget svn:mime-type '$url'`;
 					chomp $mime;
 					if (!defined $mime || !length($mime) ||
 					    grep $mime =~ $_, @text_mime_types)
@@ -1917,7 +1920,7 @@ sub dolog($$$)
 	}
 
 	# Match "protocol://path"
-	$is_svn = ($opt_root =~ m{^[\w\+]+://(\w+@|)(/|)(?:[-\w\.]+/*)+$});
+	$is_svn = ($opt_root =~ m{^[\w\+]+://(\w+@|)(/|)(?:[-\w\.]+(?::\d+)?/*)+$});
 
 	# Match "git" - FIXME: just a placeholder
 	$is_git = ($opt_root =~ m{^git}) || ($opt_root =~ m{\.git$});
@@ -1941,7 +1944,26 @@ sub dolog($$$)
 
 	if ($is_svn)
 	{
-		# FIXME: use svn info to infer $opt_module or die if --root does not match repository root
+		my $root = svn_info($opt_root, 'Repository Root');
+		# automa[tg]ically adjust $opt_root and $module
+		if ($root ne $opt_root) {
+			my $full = "$opt_root/$module";
+
+			# should never happen
+			if (   index($full, $root) != 0
+			    || length($full) <= length($root))
+			{
+				die <<EOT;
+You used --root='$opt_root' but the real repo root is '$root'.
+EOT
+			}
+
+			$opt_root = $root;
+			$module = $opt_module = substr $full, length($root) + 1;
+
+			print STDERR "Auto-adjusting paths: -root=$opt_root --module=$module" if $opt_verbose;
+		}
+
 		$cslist = svn_rlog($module, $commitlog);
 	}
 	elsif ($is_git)
