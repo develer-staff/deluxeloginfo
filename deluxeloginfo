@@ -877,7 +877,7 @@ sub send_mail(\$\$\$$$$$)
 		$mail_command ||= '/usr/bin/inews -h';
 	}
 	# default to sendmail
-	$mail_command ||= '/usr/lib/sendmail -t';
+	$mail_command ||= '/usr/bin/sendmail -t';
 
 	if ($opt_outfile)
 	{
