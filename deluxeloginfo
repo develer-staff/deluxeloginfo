@@ -65,6 +65,7 @@ my $opt_index = 999;
 my $opt_indexlines = 1;
 my $opt_svn_config_dir;
 my @opt_branches;
+my %opt_emails;
 
 # Globals
 my ($is_svn, $is_git, $is_hg);
@@ -845,6 +846,19 @@ sub send_mail(\$\$\$$$$$)
 	if ($author =~ /\@\w/) # should match all e-mail addresses
 	{
 		$from = $author;
+	}
+	elsif ($author and exists $opt_emails{$author})
+	{
+		my $email = $opt_emails{$author};
+
+		if ($email =~ /^.+<.+>$/)
+		{
+			$from = $email;
+		}
+		else
+		{
+			$from = "$author <$email>";
+		}
 	}
 	elsif ($author and $opt_maildomain)
 	{
@@ -1982,6 +1996,17 @@ EOT
 	process_cslist($cslist, $module, $recipient);
 }
 
+sub _set_email {
+	my ($name, $arg) = @_;
+	my ($user, $email) = $arg =~ /^(\w+):(.+)$/;
+
+	# poor man's e-mail validation
+	die qq{Invalid argument for --set-email: "$arg"\n}
+	    unless $user && $email && $email =~ /@\w/;
+
+	$opt_emails{$user} = $email;
+}
+
 #
 # MAIN ENTRY POINT
 #
@@ -2023,6 +2048,7 @@ unless (GetOptions(
 	'root|cvsroot=s'=> \$opt_root,
 	'prefix|cvsprefix=s' => \$opt_prefix,
 	'branch=s'      => \@opt_branches,
+	'set-email=s'   => \&_set_email,
 	'svn-config-dir=s'=> \$opt_svn_config_dir,
 
 	'weburl|cvsurl=s' => \$opt_weburl,
@@ -2135,6 +2161,9 @@ deluxeloginfo [OPTION]...
                        (devtools@lists.develer.com or news:comp.lang.c)
    --mail-command=CMD  command for sending mail; must accept the mail message
                        on standard input; defaults to 'sendmail -t'
+   --set-email USER:ADDRESS
+                       set an alternative email address for VCS that
+                       don't support full e-mail addresses
 
  Options for output format:
    --by-author         send one mail for each committer
