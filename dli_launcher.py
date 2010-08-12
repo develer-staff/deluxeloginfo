@@ -18,6 +18,7 @@ import os
 
 INT_OPTIONS = set(["difflimit", "index", "index_lines"])
 BOOL_OPTIONS = set(["by_author", "diff", "html", "text", "verbose"])
+LIST_OPTIONS = set(["branches", "set_email"])
 
 def abort(message):
     print >>sys.stderr, message
@@ -63,6 +64,8 @@ can be specified multiple times")
                       help="mail domain for committers (used for From:)")
     output.add_option("--to", metavar="ADDR",
                       help="comma-separated list of mail recipients");
+    output.add_option("--set-email", action="append", metavar="USER:ADDRESS",
+                      help="set the From e-mail address for this user")
     parser.add_option_group(output)
 
     format = optparse.OptionGroup(parser, "Deluxeloginfo output format")
@@ -140,6 +143,9 @@ def format_arguments(command):
 
         if key == 'branches':
             args.extend(["--branch=%s" % i for i in value])
+        elif key == "set_email":
+            args.extend(["--set-email='%s'" % i.replace("'", "\\'")
+                             for i in value])
         elif key == 'by_author':
             if value:
                 args.append("--by-author")
@@ -175,7 +181,7 @@ def read_options(config, section, defaults=dict()):
     options = dict(defaults)
 
     for opt in config.options(section):
-        if opt == 'branches':
+        if opt in LIST_OPTIONS:
             options[opt] = config.get(section, opt).split(',')
         elif opt in BOOL_OPTIONS:
             options[opt] = config.getboolean(section, opt)
