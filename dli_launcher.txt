@@ -35,6 +35,7 @@ path to deluxeloginfo
 if false, add --notext/--no-html to dli invocation
 
 - branches (string, comma-separated)
+- set_email (string, comma-separated)
 - diff (boolean)
 - bugurl (string)
 - by_author (boolean)
@@ -47,6 +48,7 @@ if false, add --notext/--no-html to dli invocation
 - root (string)
 - sender (string)
 - stampdir (string)
+- verbose (boolean)
 - to (string)
 all map one-to-one to the corresponding dli options
 
