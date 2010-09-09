@@ -1,0 +1,49 @@
+SVN-fs-dump-format-version: 2
+
+UUID: 57ede409-e7a9-4bb0-82fa-fd412557b100
+
+Revision-number: 0
+Prop-content-length: 56
+Content-length: 56
+
+K 8
+svn:date
+V 27
+2010-09-09T15:41:55.459106Z
+PROPS-END
+
+Revision-number: 1
+Prop-content-length: 119
+Content-length: 119
+
+K 7
+svn:log
+V 18
+Added UTF-8 file.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2010-09-09T16:22:49.937950Z
+PROPS-END
+
+Node-path: foo-utf8.txt
+Node-kind: file
+Node-action: add
+Prop-content-length: 40
+Text-content-length: 93
+Text-content-md5: 78a9b020a81670aa34b0c95d44889905
+Text-content-sha1: 185948f9dadce5a30ba4762f98d611291865f77d
+Content-length: 133
+
+K 13
+svn:eol-style
+V 6
+native
+PROPS-END
+﻿Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt
+

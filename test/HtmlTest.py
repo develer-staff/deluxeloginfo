@@ -148,5 +148,33 @@ class TestGitHtml(TestHtml):
 
 """)
 
+class TestDiffSpecial(TestHtml):
+    repository_name = 'special.svn'
+    template_path = 'test/repository/special.svn.dump'
+
+    def testUTF(self):
+        self.assertHtmlEqual(self.runDli(start_revision=0, end_revision=1,
+                                         show_text=False, show_html=True),
+                             """<body>
+<h3>ChangeSet Index:</h3>
+<ul>
+<li><a href='#cs1'>CS1</a> - Added UTF-8 file.</li>
+</ul>
+<a name='cs1'></a>
+<table>
+<tr><td><pre>Added UTF-8 file.
+</pre></td></tr>
+<tr><td>A</td><td><font>1</font></td><td><font>foo-utf8.txt</font></td></tr>
+</table>
+<pre>
+<hr />
+<font>--- /dev/null
++++ foo-utf8.txt	(revision 1)
+</font><font>+<span style="background-color: #FF0000">&lt;UTF-8 BOM&gt;</span>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt
+</font></pre>
+<p>&nbsp;</p>
+
+""")
+
 if __name__ == '__main__':
     unittest.main()

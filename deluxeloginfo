@@ -1157,6 +1157,9 @@ sub diff2html($)
 		# Mark hidden whitespace before TABs
 		s/([^ ])( +)\t/$1<span style="background-color: #FF0000">$2<\/span>\t/;
 
+		# Highligh the UTF-8 BOM
+		s/^(.)\xEF\xBB\xBF/$1<span style="background-color: #FF0000">&lt;UTF-8 BOM&gt;<\/span>/;
+
 		# Replace long runs of '===' with a horizontal ruler
 		s#^={30,}#<hr />#;
 
