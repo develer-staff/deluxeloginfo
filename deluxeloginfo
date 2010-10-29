@@ -519,7 +519,7 @@ sub svn_rev($)
 	my $rev = "";
 	if (open my $revision, shift)
 	{
-		chomp($rev = <$revision> || "");
+		chomp($rev = <$revision> // "");
 		close $revision;
 		return ($rev =~ /\d+/) ? $rev : -1;
 	}
