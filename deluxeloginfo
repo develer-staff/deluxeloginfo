@@ -1758,7 +1758,8 @@ sub hg_log_branch($$$$)
 		return $new_tip
 	}
 
-	my @args = ('hg', 'log', '--cwd', $hgdir, '-b', $branch, '--template', '__START__\nchangeset: {node}\nauthor: {author}\ndate: {date|rfc822date}\nfiles: {files}\nfile_adds: {file_adds}\nfile_dels: {file_dels}\n{desc}\n__END__\n', '-r', $new_tip.':'.@{$range}[1 .. $#$range]);
+	my @branch = $branch ? ('-b', $branch) : ();
+	my @args = ('hg', 'log', '--cwd', $hgdir, @branch, '--template', '__START__\nchangeset: {node}\nauthor: {author}\ndate: {date|rfc822date}\nfiles: {files}\nfile_adds: {file_adds}\nfile_dels: {file_dels}\n{desc}\n__END__\n', '-r', $new_tip.':'.@{$range}[1 .. $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
 
