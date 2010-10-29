@@ -25,3 +25,13 @@ Added a file with a funky name.
 from :2
 M 100644 :3 foo-(1)#&$f.txt
 
+commit refs/heads/master
+mark :5
+author Mattia Barbon <mattia@develer.com> 1288350383 +0200
+committer Mattia Barbon <mattia@develer.com> 1288350383 +0200
+data 20
+Sorry, forgot some.
+from :4
+D foo-(1)#&$f.txt
+M 100644 :3 foo: space,	tab<|.txt
+

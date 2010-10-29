@@ -83,3 +83,35 @@ PROPS-END
 Strange name...
 
 
+Revision-number: 3
+Prop-content-length: 121
+Content-length: 121
+
+K 7
+svn:log
+V 20
+Sorry, forgot some.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2010-10-29T11:07:50.706363Z
+PROPS-END
+
+Node-path: foo: space,	tab<|.txt
+Node-kind: file
+Node-action: add
+Node-copyfrom-rev: 2
+Node-copyfrom-path: foo-(1)#&$f.txt
+Text-copy-source-md5: d3982f1b5ceb700a00b0aa8de7bc7877
+Text-copy-source-sha1: 0a83e5dc8dfa8d1119dc874b3ac25b444fd1c937
+
+
+Node-path: foo-(1)#&$f.txt
+Node-action: delete
+
+
