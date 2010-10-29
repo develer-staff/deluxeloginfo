@@ -1,0 +1,27 @@
+blob
+mark :1
+data 0
+
+reset refs/heads/master
+commit refs/heads/master
+mark :2
+author Mattia Barbon <mattia@develer.com> 1288349245 +0200
+committer Mattia Barbon <mattia@develer.com> 1288349245 +0200
+data 7
+Dummy.
+M 100644 :1 foo
+
+blob
+mark :3
+data 16
+Strange name...
+
+commit refs/heads/master
+mark :4
+author Mattia Barbon <mattia@develer.com> 1288349255 +0200
+committer Mattia Barbon <mattia@develer.com> 1288349255 +0200
+data 32
+Added a file with a funky name.
+from :2
+M 100644 :3 foo-(1)#&$f.txt
+

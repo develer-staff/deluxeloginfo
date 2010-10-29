@@ -419,6 +419,15 @@ sub svn_date($)
 	return time2str('{%Y-%m-%d %H:%M:%S %z}', $mtime, "UTC")
 }
 
+sub shell_escape
+{
+	my $str = shift;
+
+	$str =~ s/([\\$|&;()<>	 ])/\\$1/g;
+
+	return $str;
+}
+
 sub svn_escape
 {
 	my $str = shift;
@@ -1698,7 +1707,8 @@ sub git_log_branch($$$$)
 			my $log = join "\n", @log, '';
 			# try to detect if file is binary
 			if ($operation ne 'D') {
-				my $diff = `git --git-dir=$gitdir diff $r2^! -- $file`;
+				my $escaped_file = shell_escape($file);
+				my $diff = `git --git-dir=$gitdir diff $r2^! -- $escaped_file`;
 				if ($diff =~ /\nindex .+\nBinary file.+$/)
 				{
 					$keywords = 'kb';
