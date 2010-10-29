@@ -1,0 +1,3 @@
+# Name		Root		Notify (comma separated addresses allowed)
+devtools	file:///svn	devtools@lists.develer.com
+example 	file:///svn	example@lists.develer.com

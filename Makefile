@@ -1,8 +1,11 @@
 all:
-	@echo "make [test|testcover|clean]"
+	@echo "make [test|test_launcher|testcover|clean]"
 
 test:
 	python test/test.py
+
+test_launcher:
+	 PYTHONPATH=. python test/LauncherTest.py
 
 testcover:
 	PERL5OPT=-MDevel::Cover python test/test.py
