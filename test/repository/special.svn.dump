@@ -47,3 +47,39 @@ native
 PROPS-END
 ﻿Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt
 
+Revision-number: 2
+Prop-content-length: 133
+Content-length: 133
+
+K 7
+svn:log
+V 32
+Added a file with a funky name.
+
+K 10
+svn:author
+V 6
+mattia
+K 8
+svn:date
+V 27
+2010-10-29T09:54:38.953601Z
+PROPS-END
+
+Node-path: foo-(1)#&$f.txt
+Node-kind: file
+Node-action: add
+Prop-content-length: 40
+Text-content-length: 16
+Text-content-md5: d3982f1b5ceb700a00b0aa8de7bc7877
+Text-content-sha1: 0a83e5dc8dfa8d1119dc874b3ac25b444fd1c937
+Content-length: 56
+
+K 13
+svn:eol-style
+V 6
+native
+PROPS-END
+Strange name...
+
+
