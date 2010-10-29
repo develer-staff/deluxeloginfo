@@ -24,7 +24,7 @@ def timestampPath(repository_url):
             re.sub("[:\/\\@.]", "_", repository_url) + ".stamp"
 
 class TestDLI(unittest.TestCase):
-    # 'svn' or 'git'
+    # 'svn', 'git', 'hg'
     repository_type = 'svn'
     # module name
     repository_module = None
@@ -50,6 +50,10 @@ class TestDLI(unittest.TestCase):
         subprocess.check_call(["svnadmin", "create", destination])
         subprocess.check_call("cat %s | svnadmin load %s" %
                                 (template, destination), shell=True)
+
+    def setupHgRepository(self, template, destination):
+        subprocess.check_call(["hg", "init", destination])
+        subprocess.check_call(["hg", "unbundle", "-R", destination, template])
 
     def setupGitRepository(self, template, destination):
         subprocess.check_call(["git", "--git-dir=%s" % destination, "init",
@@ -111,7 +115,7 @@ class TestDLI(unittest.TestCase):
         # file is created
         if not os.access(self.output_file, os.F_OK):
             return None
-        
+
         binary_handle = open(self.output_file, "r")
         reader = codecs.getreader("utf-8")(binary_handle)
         lines = reader.readlines()
@@ -138,6 +142,8 @@ class TestDLI(unittest.TestCase):
         if not self.is_readonly or not os.access(repo_path, os.F_OK):
             if self.repository_type == 'svn':
                 self.setupSvnRepository(self.template_path, repo_path)
+            elif self.repository_type == 'hg':
+                self.setupHgRepository(self.template_path, repo_path)
             else:
                 self.setupGitRepository(self.template_path, repo_path)
         if self.start_timestamp != None:
