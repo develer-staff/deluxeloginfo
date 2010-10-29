@@ -419,6 +419,23 @@ sub svn_date($)
 	return time2str('{%Y-%m-%d %H:%M:%S %z}', $mtime, "UTC")
 }
 
+sub svn_escape
+{
+	my $str = shift;
+
+	$str =~ s/([^a-zA-Z0-9-.\/:@])/sprintf '%%%02x', ord $1/eg;
+
+	return $str;
+}
+
+sub svn_unescape
+{
+	my $str = shift;
+
+	$str =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+
+	return $str;
+}
 
 #
 # Return an SVN date or revision range in the format "{OLD}:{NEW}" or
@@ -480,6 +497,7 @@ sub svn_date_range($$)
 sub svn_info($$)
 {
 	my ($url,$field) = @_;
+	$url = svn_escape($url);
 	open my $svninfo, "svn @svn_global_options info --non-interactive $url 2>/dev/null |" or die;
 	while (<$svninfo>)
 	{
@@ -977,15 +995,15 @@ sub dodiff($$$$)
 	my @args;
 	if ($is_svn)
 	{
-
+		my $escaped_file = svn_escape($file);
 		if ($r1 eq "NONE")
 		{
-			@args = ('svn', @svn_global_options, 'cat', "-r$r2", "$opt_root/$file\@$r2");
+			@args = ('svn', @svn_global_options, 'cat', "-r$r2", "$opt_root/$escaped_file\@$r2");
 			$is_diff = 0;
 		}
 		else
 		{
-			@args = ('svn', @svn_global_options, 'diff', "-r$r1:$r2", "$opt_root/$file\@$r2");
+			@args = ('svn', @svn_global_options, 'diff', "-r$r1:$r2", "$opt_root/$escaped_file\@$r2");
 		}
 	}
 	elsif ($is_git)
@@ -1506,8 +1524,9 @@ sub svn_xml_log($$)
 
 					print STDERR "Checking mimetype for $url\n" if $opt_verbose;
 
+					my $escaped_url = svn_escape($url);
 					my $mime =
-					    `svn @svn_global_options propget svn:mime-type '$url'`;
+					    `svn @svn_global_options propget svn:mime-type '$escaped_url'`;
 					chomp $mime;
 					if (!defined $mime || !length($mime) ||
 					    grep $mime =~ $_, @text_mime_types)

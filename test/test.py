@@ -8,6 +8,7 @@ from TimestampTest import *
 from GitBranchTest import *
 from SvnBranchTest import *
 from HtmlTest import *
+from FilenameTest import *
 
 if __name__ == '__main__':
     unittest.main()
