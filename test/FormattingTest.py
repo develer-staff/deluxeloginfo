@@ -154,7 +154,7 @@ class TestFormattingGit(TestDLI.TestDLI):
     template_path = 'test/repository/latin1.git.dump'
 
     # test with latin1 characters
-    def testNonAsciiChars(self):
+    def testNonAsciiChars1(self):
         self.assertEqualDiff(self.runDli(start_revision='144c3ba9',
                                          end_revision='30fbdf4'),
                              u"""
@@ -178,7 +178,7 @@ M 30fbdf4975c0c49d3591e5506d6c33afa3b4ca8e  test_latin1.txt
 """)
 
     # test changes on multiple files
-    def testNonAsciiChars(self):
+    def testNonAsciiChars2(self):
         self.assertEqualDiff(self.runDli(start_revision='aaa1319c',
                                          end_revision='6ac11816'),
                              """
@@ -189,7 +189,7 @@ CS1 [#cs1] - Change two files.
 Change two files.
 
 A 6ac1181609dc7ca112a942fce6e7cb6b45cd45a7  test2.txt
-A 6ac1181609dc7ca112a942fce6e7cb6b45cd45a7  test_latin1.txt
+M 6ac1181609dc7ca112a942fce6e7cb6b45cd45a7  test_latin1.txt
 
 ======================================================================
 --- /dev/null
