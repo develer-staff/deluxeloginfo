@@ -1,0 +1,6 @@
+changeset = '__CHANGESET__: {node}|{date|rfc822date}|{author}\n{files}{file_adds}{file_dels}{desc}\n__END__\n'
+file = '__CHANGED__: {file}\n'
+file_add = '__ADDED__: {file_add}\n'
+file_del = '__DELETED__: {file_del}\n'
+desc = '{desc|strip}\n'
+

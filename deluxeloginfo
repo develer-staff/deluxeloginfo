@@ -27,6 +27,8 @@
 use strict;
 use Getopt::Long;
 use Pod::Usage;
+use File::Spec;
+use File::Basename;
 
 my $versiontag = '$Revision$';
 $versiontag =~ s/.*: (.*) .*/$1/;
@@ -1758,8 +1760,9 @@ sub hg_log_branch($$$$)
 		return $new_tip
 	}
 
+	my $style_file = dirname(File::Spec->rel2abs( __FILE__ )) . "/dli.style";
 	my @branch = $branch ? ('-b', $branch) : ();
-	my @args = ('hg', 'log', '--cwd', $hgdir, @branch, '--template', '__START__\nchangeset: {node}\nauthor: {author}\ndate: {date|rfc822date}\nfiles: {files}\nfile_adds: {file_adds}\nfile_dels: {file_dels}\n{desc}\n__END__\n', '-r', $new_tip.':'.@{$range}[1 .. $#$range]);
+	my @args = ('hg', 'log', '--cwd', $hgdir, @branch, '--style', $style_file, '-r', $new_tip.':'.@{$range}[1 .. $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
 	open(RLOG, "-|") || exec @args;
 
@@ -1774,60 +1777,44 @@ sub hg_log_branch($$$$)
 
 	while (<RLOG>)
 	{
-		if (/^__START__$/)
+		if (/^__CHANGESET__: ([0-9a-f]+)\|(.+)\|(.+)$/)
 		{
-			$date = '';
-			$author = '';
-			undef @log;
-			undef %files;
+			# Set new revisions
+			$r1 = $r2;
+			$r2 = $1;
+
+			# Set date
+			use Date::Format qw(time2str);
+			use HTTP::Date qw(str2time);
+			$date = time2str('%Y-%m-%dT%H:%M:%SZ', str2time($2));
+			
+			# Set author
+			$author = $3;
+		}
+		elsif (/^__CHANGED__: (.+)$/)
+		{
+			$files{$1} = [$r1, $r2];
+		}
+		elsif (/^__ADDED__: (.+)$/)
+		{
+			$files{$1}[0] = 'NONE';
+		}
+		elsif (/^__DELETED__: (.+)$/)
+		{
+			$files{$1}[1] = 'NONE';
 		}
 		elsif (/^__END__$/)
 		{
+			# Clean prev changeset
 			my $log = join "\n", @log, '';
 			foreach my $file (keys(%files)) {
 				$cslist->add_file($author, $log, $hgdir, $file, $files{$file}[0], $files{$file}[1], $branch, $date, "");
 			}
-		}
-		elsif (/^changeset: ([0-9a-f]+)$/)
-		{
-			$r1 = $r2;
-			$r2 = $1;
-		}
-		elsif (/^author: (.+)$/)
-		{
-			$author = $1;
-		}
-		elsif (/^date: (.+)$/)
-		{
-			use Date::Format qw(time2str);
-			use HTTP::Date qw(str2time);
-			$date = time2str('%Y-%m-%dT%H:%M:%SZ', str2time($1));
-		}
-		elsif (/^files: (.+)$/)
-		{
-			my @files = split(/\s/, $1);
-		
-			foreach my $file (@files) {
-				$files{$file} = [$r1, $r2];
-			}
-		}
-		elsif (/^file_adds: (.*)$/)
-		{
-			my @adds = split(/\s/, $1);
-
-			foreach my $file (@adds) {
-				$files{$file}[0] = 'NONE';
-			}
-		}
-		elsif (/^file_dels: (.*)$/)
-		{
-			my @dels = split(/\s/, $1);
-
-			foreach my $file (@dels) {
-				$files{$file}[1] = 'NONE';
-			}
+			undef @log;
+			undef %files;
 		}
 		else {
+			# Description
 			push @log, $_ if length $_;
 		}
 	}
