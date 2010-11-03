@@ -1690,13 +1690,14 @@ sub git_log_branch($$$$)
 			next if $seen{$r2};
 			my $file = my $old_file = $2;
 			my $operation = $1;
+			my ($fr1, $fr2) = ($r1, $r2);
 			if ($operation eq 'A')
 			{
-				$r1 = 'NONE';
+				$fr1 = 'NONE';
 			}
 			elsif ($operation eq 'D')
 			{
-				$r2 = 'NONE';
+				$fr2 = 'NONE';
 			}
 			elsif ($operation eq 'C')
 			{
@@ -1710,7 +1711,7 @@ sub git_log_branch($$$$)
 			# try to detect if file is binary
 			if ($operation ne 'D') {
 				my $escaped_file = shell_escape($file);
-				my $diff = `git --git-dir=$gitdir diff $r2^! -- $escaped_file`;
+				my $diff = `git --git-dir=$gitdir diff $fr2^! -- $escaped_file`;
 				if ($diff =~ /\nindex .+\nBinary file.+$/)
 				{
 					$keywords = 'kb';
@@ -1719,11 +1720,11 @@ sub git_log_branch($$$$)
 			if ($operation eq 'R')
 			{
 				$cslist->add_file($author, $log, $gitdir,
-						  $old_file, $r1, 'NONE', $branch,
+						  $old_file, $fr1, 'NONE', $branch,
 						  $date, $keywords);
 			}
 			$cslist->add_file($author, $log, $gitdir,
-					  $file, $r1, $r2, $branch,
+					  $file, $fr1, $fr2, $branch,
 					  $date, $keywords);
 		}
 	}
