@@ -2005,6 +2005,9 @@ sub dolog($$$)
 
 	if ($is_svn)
 	{
+		# Remove trailing shash from root
+		$opt_root =~ s{/$}{};
+
 		my $root = svn_info($opt_root, 'Repository Root');
 		# automa[tg]ically adjust $opt_root and $module
 		if ($root ne $opt_root) {
@@ -2022,7 +2025,7 @@ EOT
 			$opt_root = $root;
 			$module = $opt_module = substr $full, length($root) + 1;
 
-			print STDERR "Auto-adjusting paths: -root=$opt_root --module=$module" if $opt_verbose;
+			print STDERR "Auto-adjusting paths: -root=$opt_root --module=$module\n" if $opt_verbose;
 		}
 
 		$cslist = svn_rlog($module, $commitlog);
