@@ -430,6 +430,25 @@ sub shell_escape
 	return $str;
 }
 
+# URI-escape the URI path (the part after the host);
+sub svn_url_escape
+{
+	require URI;
+
+	my $uri = URI->new(shift);
+	my $str = $uri->path . ($uri->fragment ? '#' . $uri->fragment : '');
+
+	# URI already escapes URI-unsafe characters during parsing,
+	# so we only need to URI-escape shell metacharacters
+	$str =~ s/([\\$|&;()<>	 ])/sprintf '%%%02x', ord $1/eg;
+
+	$uri->path($str);
+	$uri->fragment(undef);
+
+	return $uri->as_string;
+}
+
+# URI-escape the whole string
 sub svn_escape
 {
 	my $str = shift;
@@ -508,7 +527,7 @@ sub svn_date_range($$)
 sub svn_info($$)
 {
 	my ($url,$field) = @_;
-	$url = svn_escape($url);
+	$url = svn_url_escape($url);
 	open my $svninfo, "svn @svn_global_options info --non-interactive $url 2>/dev/null |" or die;
 	while (<$svninfo>)
 	{
@@ -1535,7 +1554,7 @@ sub svn_xml_log($$)
 
 					print STDERR "Checking mimetype for $url\n" if $opt_verbose;
 
-					my $escaped_url = svn_escape($url);
+					my $escaped_url = svn_url_escape($url);
 					my $mime =
 					    `svn @svn_global_options propget svn:mime-type '$escaped_url'`;
 					chomp $mime;
