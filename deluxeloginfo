@@ -538,6 +538,8 @@ sub svn_info($$)
 		}
 	}
 	close $svninfo;
+	# return false on failure
+	return;
 }
 
 #
@@ -2026,6 +2028,13 @@ EOT
 			$module = $opt_module = substr $full, length($root) + 1;
 
 			print STDERR "Auto-adjusting paths: -root=$opt_root --module=$module\n" if $opt_verbose;
+		}
+
+		# check that the path is valid
+		my $revision = svn_info("$opt_root/$module", 'Revision');
+		if (!$revision)
+		{
+			die "It seems that '$opt_root/$module' is not a valid path in the repository"
 		}
 
 		$cslist = svn_rlog($module, $commitlog);
