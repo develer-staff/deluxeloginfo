@@ -1689,7 +1689,6 @@ sub git_log_branch($$$$)
 			undef @log;
 			$date = "";
 			$author = "";
-			$keywords = "";
 		}
 		elsif (/^Author: (.*)$/)
 		{
@@ -1736,6 +1735,10 @@ sub git_log_branch($$$$)
 				if ($diff =~ /\nindex .+\nBinary file.+$/)
 				{
 					$keywords = 'kb';
+				}
+				else
+				{
+					$keywords = "";
 				}
 			}
 			if ($operation eq 'R')
