@@ -1367,7 +1367,8 @@ sub format_output($$$\$)
 		$type_text = "[BIN] " if ($filerev->is_binary);
 		$type_text = "[DIR] " if ($filerev->is_directory);
 
-		$fmtText .= sprintf("$state %6s  $type_text$file\n", $rev);
+		$fmtText .= sprintf("%s %6s  %s%s\n",
+                                    $state, $rev, $type_text, $file);
 
 		my $statelink = $state;
 		if ($opt_weburl)
