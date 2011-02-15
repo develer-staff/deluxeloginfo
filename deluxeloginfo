@@ -1289,7 +1289,7 @@ sub format_output($$$\$)
 		return ();
 	}
 
-	if ($log =~ /((CVS|SVN).?SILENT)/)
+	if ($log =~ /((CVS|SVN|GIT|HG).?SILENT)/)
 	{
 		# Ignore this commit and reset silent status
 		log_output("Ignoring commit by $author because of '$1'", $log);
