@@ -1998,8 +1998,9 @@ sub dolog($$$)
 	# None? Try to guess from local repository
 	if (!($is_svn or $is_git or $is_hg))
 	{
-		# Maybe it's a local path, try to determine whether it's SVN
+		# Maybe it's a local path, try some heuristics
 		$is_svn = (-f "$opt_root/format");
+		$is_hg = (-d "$opt_root/.hg/store");
 		#TODO: add git
 
 		print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
