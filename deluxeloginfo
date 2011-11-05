@@ -2016,6 +2016,10 @@ sub dolog($$$)
 		$opt_root =~ s{/$}{};
 
 		my $root = svn_info($opt_root, 'Repository Root');
+		# wrong path/offline repository
+		if (!defined($root)) {
+			die "Either '$opt_root' is not a valid path or the repository is offline";
+		}
 		# automa[tg]ically adjust $opt_root and $module
 		if ($root ne $opt_root) {
 			my $full = "$opt_root/$module";
