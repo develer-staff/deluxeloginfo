@@ -215,14 +215,29 @@ def parse_ini_file(file):
 
 def execute_dli(command, verbose=False, dry_run=False):
     """
-    Take a deluxeloginfo invocation and print and/or execute it
-    depending on verbose/dry_run settings
+    Take a deluxeloginfo invocation and execute it (unless dry_run is True)
+
+    Returns a tuple (success, diagnostic) where diagnostic is a string.
+
+    In case of failure, or if the command produces any output,
+    diagnostic always contains the command line and output.
     """
     args = format_arguments(command)
-    if verbose or dry_run:
-        print " ".join(args)
-    if not dry_run:
-        subprocess.check_call(args)
+    header = " ".join(args) + "\n"
+    if dry_run:
+        return (True, header)
+
+    try:
+        dli = subprocess.Popen(args, stderr=subprocess.STDOUT,
+                               stdout=subprocess.PIPE)
+        stdout, _ = dli.communicate()
+
+        if dli.returncode != 0 or stdout or verbose:
+            return (dli.returncode == 0, header + stdout)
+        else:
+            return (True, "")
+    except Exception as e:
+        return (False, header + str(e))
 
 def main():
     (options, args) = parse_options()
@@ -265,7 +280,13 @@ def main():
         command.update(cmd)
         command.update(options)
 
-        execute_dli(command, dry_run=dry_run, verbose=verbose)
+        success, diagnostic = execute_dli(command, dry_run=dry_run,
+                                          verbose=verbose)
+
+        if not success:
+            print '\n', 'Command failed:'
+        if diagnostic:
+            print '\n', diagnostic
 
 if __name__ == '__main__':
     main()

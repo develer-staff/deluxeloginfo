@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo 'Fail noisily'
+exit 1

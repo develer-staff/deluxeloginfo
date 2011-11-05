@@ -4,7 +4,7 @@
 import unittest;
 import dli_launcher
 
-class TestLauncher(unittest.TestCase):
+class TestLauncherParser(unittest.TestCase):
     def testReadPrjtab(self):
         self.assertEqual(dli_launcher.parse_prjtab('test/launcher/prjtab'),
                          [{'to': 'devtools@lists.develer.com',
@@ -50,6 +50,87 @@ class TestLauncher(unittest.TestCase):
                            'index_lines': 5,
                            'recipient': 'mogul@lists.develer.com',
                            }])
+
+class TestLauncherExecute(unittest.TestCase):
+    def testCommandFailureNoOutput(self):
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': '/ffdjd'})
+
+        self.assertFalse(success)
+        self.assertTrue(diag.startswith('/ffdjd\n'))
+
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'false'})
+
+        self.assertFalse(success)
+        self.assertEquals(diag, 'false\n')
+
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'false'}, verbose=True)
+
+        self.assertFalse(success)
+        self.assertEquals(diag, 'false\n')
+
+    def testCommandFailureWithOutput(self):
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'test/launcher/noisy_failure'})
+
+        self.assertFalse(success)
+        self.assertEquals(diag,
+                          'test/launcher/noisy_failure\n'
+                          'Fail noisily\n')
+
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'test/launcher/noisy_failure'}, verbose=True)
+
+        self.assertFalse(success)
+        self.assertEquals(diag,
+                          'test/launcher/noisy_failure\n'
+                          'Fail noisily\n')
+
+    def testCommandSuccessNoOutput(self):
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'true'})
+
+        self.assertTrue(success)
+        self.assertEquals(diag, '')
+
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'true'}, verbose=True)
+
+        self.assertTrue(success)
+        self.assertEquals(diag, 'true\n')
+
+    def testCommandSuccessWithOutput(self):
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'test/launcher/noisy_success'})
+
+        self.assertTrue(success)
+        self.assertEquals(diag,
+                          'test/launcher/noisy_success\n'
+                          'Succeed noisily\n')
+
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'test/launcher/noisy_success'}, verbose=True)
+
+        self.assertTrue(success)
+        self.assertEquals(diag,
+                          'test/launcher/noisy_success\n'
+                          'Succeed noisily\n')
+
+    def testDryRun(self):
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'true'}, dry_run=True)
+
+        self.assertTrue(success)
+        self.assertEquals(diag, 'true\n')
+
+        success, diag = dli_launcher.execute_dli(
+            {'dli_path': 'false'}, dry_run=True)
+
+        self.assertTrue(success)
+        self.assertEquals(diag, 'false\n')
+
 
 if __name__ == '__main__':
     unittest.main()
