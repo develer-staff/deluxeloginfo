@@ -1042,11 +1042,11 @@ sub dodiff($$$$)
 	{
 		if ($r1 eq "NONE")
 		{
-			@args = ('git', "--git-dir=$opt_root", 'show', $r2, '--', $file);
+			@args = ('git', "--git-dir=$opt_root", 'show', '--patience', $r2, '--', $file);
 		}
 		else
 		{
-			@args = ('git', "--git-dir=$opt_root", 'diff', "$r1..$r2", '--', $file);
+			@args = ('git', "--git-dir=$opt_root", 'diff', '--patience', "$r1..$r2", '--', $file);
 		}
 	}
 	elsif ($is_hg)
