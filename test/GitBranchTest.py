@@ -4,7 +4,7 @@
 import unittest;
 import TestDLI
 
-class TestGitBranchLog(TestDLI.TestDLI):
+class TestGitBranchTracking(TestDLI.TestDLI):
     repository_name = 'base.git'
     repository_type = 'git'
     template_path = 'test/repository/base.git.dump'
@@ -67,7 +67,7 @@ M 9209bd9009b1cbbc09c23e446fc714ef39964baf  README.txt
 
 """)
 
-class TestGitBranchLog(TestDLI.TestDLI):
+class TestGitMergeLog(TestDLI.TestDLI):
     repository_name = 'base.git'
     repository_type = 'git'
     template_path = 'test/repository/base.git.dump'
