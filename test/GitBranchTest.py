@@ -67,6 +67,45 @@ M 9209bd9009b1cbbc09c23e446fc714ef39964baf  README.txt
 
 """)
 
+    def testDeletedBranch(self):
+        self.setTimestamp("""
+ba96d7770b9a160f4fb38aa10a9fc6aecb3ef614 first_branch
+218593eb78da09a6c4c15f63d1fbafdf64c27c4f master
+00f60cd27c6f572fae306a01444ad9b1d85b1c6d dummy_branch
+00f60cd27c6f572fae306a01444ad9b1d85b1c6d second_branch
+ffffffffffffffffffffffffffffffffffffffff another_dummy_branch
+""")
+        self.assertEqualDiff(self.runDli(), """
+ChangeSet Index:
+
+CS1 [#cs1] - Third commit in first_branch.
+
+ (on branch first_branch):
+Third commit in first_branch.
+
+M 9209bd9009b1cbbc09c23e446fc714ef39964baf  README.txt
+
+======================================================================
+--- a/README.txt
++++ b/README.txt
+@@ -1,4 +1,4 @@
+-Another commit in first_branch.
++Commit in first_branch but not in second_branch.
+ 
+ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do
+ eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+
+
+""")
+        self.assertTimestamp(
+"""9209bd9009b1cbbc09c23e446fc714ef39964baf first_branch
+218593eb78da09a6c4c15f63d1fbafdf64c27c4f master
+00f60cd27c6f572fae306a01444ad9b1d85b1c6d second_branch
+""")
+
+
+
 class TestGitMergeLog(TestDLI.TestDLI):
     repository_name = 'base.git'
     repository_type = 'git'
