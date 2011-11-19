@@ -638,6 +638,25 @@ sub svn_rev_range($$)
 }
 
 #
+# Finds the full hash for a commit; symbolic names are resolved to branches
+#
+sub git_branch_parse($)
+{
+	my $gitdir = $opt_root;
+	my $new_tip;
+	foreach my $ref ("heads/$_[0]", $_[0])
+	{
+		$new_tip = `git --git-dir=$gitdir rev-parse -q --verify $ref`;
+		last if $new_tip;
+	}
+
+        Carp::confess "Invalid symbolic name: '$_[0]'" unless $new_tip;
+        chomp $new_tip;
+
+	return $new_tip;
+}
+
+#
 # timestamp_filename -> revision range
 #
 # Build git revision range.
@@ -674,13 +693,17 @@ sub git_rev_range($\@)
 			# multiple branches created between two dli
 			# runs; revisions might be attributed to the
 			# "wrong" branch but there is no way around it
-			my @old_branches = grep $revisions{$_}, @$branches;
-			my @new_branches = grep !$revisions{$_}, @$branches;
+			my @old_branches = 
+				map git_branch_parse($_),
+				grep $revisions{$_}, @$branches;
+			my @new_branches =
+				grep !$revisions{$_}, @$branches;
 			foreach my $branch (@new_branches)
 			{
+				my $sha = git_branch_parse($branch);
 				$revisions{$branch} =
-				  [ $branch, map "^$_", @old_branches ];
-				push @old_branches, $branch;
+				  [ $sha, map "^$_", @old_branches ];
+				push @old_branches, $sha;
 			}
 		}
 		else
@@ -688,8 +711,9 @@ sub git_rev_range($\@)
 			print STDERR "Warning: can't find last rev file: $filename\n" if $opt_verbose;
 			foreach my $branch (@$branches)
 			{
+				my $sha = git_branch_parse($branch);
 				$revisions{$branch} =
-				  [ $branch, "^$branch^@" ];
+				  [ $sha, "^$sha^@" ];
 			}
 		}
 
@@ -1661,8 +1685,7 @@ sub git_log_branch($$$$)
 	print STDERR "Reading log for branch $branch\n" if $opt_verbose && $branch;
 	print STDERR "Reading log with gitdir='$gitdir'\n" if ($opt_verbose);
 
-	my $new_tip = `git --git-dir=$gitdir rev-parse $range->[0]`;
-	chomp $new_tip;
+	my $new_tip = git_branch_parse($range->[0]);
 	my @args = ('git', "--git-dir=$gitdir", 'whatchanged', '--parents', '-m',
 		    '--find-copies-harder', $new_tip, @{$range}[1 .. $#$range]);
 	print STDERR "+ " . join(' ', @args) . "\n" if $opt_verbose;
