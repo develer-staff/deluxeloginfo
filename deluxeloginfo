@@ -37,7 +37,6 @@ my @text_mime_types =
    ( qr{^text/}, qr{^image/x-xbitmap$}, qr{^image/x-xpixmap$} );
 
 # Command line options
-my $opt_keeplogs;
 my $opt_verbose;
 my $opt_logfile = '';
 my $opt_sender = "cvs\@develer.com";
@@ -2135,7 +2134,6 @@ unless (GetOptions(
 	'enddate=s'     => \$opt_enddate,
 	'startrevision=s'=>\$opt_startrevision,
 	'endrevision=s' => \$opt_endrevision,
-	'keeplogs'	=> \$opt_keeplogs,
 	'root|cvsroot=s'=> \$opt_root,
 	'prefix|cvsprefix=s' => \$opt_prefix,
 	'branch=s'      => \@opt_branches,
@@ -2238,7 +2236,6 @@ deluxeloginfo [OPTION]...
                        stamp file (Subversion-only)
    --endrevision=NUM   specify end revision instead of picking it from
                        stamp file (Subversion-only)
-   --keeplogs          keep log files instead of rotating them
    --branch=[local|remote|all|<branch-name>]
                        branches to track (Git and Hg only); can be specified
                        multiple times
