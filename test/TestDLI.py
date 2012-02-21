@@ -79,8 +79,8 @@ class TestDLI(unittest.TestCase):
 
     def runDli(self, start_revision=None, end_revision=None, show_diff=True,
                diff_limit=500, index_entries=0, index_lines=3,
-               show_text=True, show_html=False, verbose=False,
-               web_url=None,
+               show_text=True, show_html=False, show_header=False,
+               verbose=False, web_url=None, module_description=None,
                bug_url="https://www.develer.com/bugs/show_bug.cgi?id=@BUG@"):
         if os.access(self.output_file, os.F_OK):
             os.remove(self.output_file)
@@ -104,6 +104,8 @@ class TestDLI(unittest.TestCase):
         if verbose: more_args.append("-v")
         if self.repository_module:
             more_args.append("--module=%s" % self.repository_module)
+        if module_description:
+            more_args.append("--module-description=%s" % module_description)
 
         subprocess.check_call(["./deluxeloginfo", "--by-author", "--rlog",
                                "--root=" + repositoryUrl(self.repository_type,
@@ -133,6 +135,12 @@ class TestDLI(unittest.TestCase):
                 if lines[i] == "<p>--<br />\n":
                     del lines[i:]
                     break
+        elif show_header:
+            lines = ["\n"] + lines[0:lines.index("\n")]
+
+            # normalize the date, to simplify tests
+            for i in range(len(lines)):
+                lines[i] = re.sub(r'\(\d{4}-\d{2}-\d{2}\)$', '(DATE)', lines[i])
 
         return ''.join(lines)
 

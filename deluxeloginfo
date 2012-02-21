@@ -62,6 +62,7 @@ my $opt_endrevision;
 my $opt_root = '';
 my $opt_prefix = '';
 my $opt_module = '';
+my $opt_module_description = '';
 my $opt_index = 999;
 my $opt_indexlines = 1;
 my $opt_svn_config_dir;
@@ -889,7 +890,7 @@ EOF
 
 sub send_mail(\$\$\$$$$$)
 {
-	my ($text, $html, $summary, $module, $to, $cc, $author) = @_;
+	my ($text, $html, $summary, $description, $to, $cc, $author) = @_;
 
 	# Avoid sending empty mails
 	if (!$$text)
@@ -913,7 +914,7 @@ sub send_mail(\$\$\$$$$$)
 
 	# Build subject line
 	my $subject = $author ? "changes by $author" : "change log";
-	$subject .= " for $module" if ($module);
+	$subject .= " for $description" if ($description);
 	{
 		# Compute current time
 		my (undef , undef, undef, $mday, $mon, $year, undef, undef, undef) = localtime;
@@ -1473,7 +1474,7 @@ sub process_cslist($$$)
 			send_mail($fmtText,
 					  $fmtHtml,
 					  $summary,
-					  $module,
+					  $opt_module_description || $module,
 					  $recipient,
 					  $ccrecipients,
 					  $author);
@@ -1490,7 +1491,7 @@ sub process_cslist($$$)
 		send_mail($fmtText,
 				  $fmtHtml,
 				  $summary,
-				  $module,
+				  $opt_module_description || $module,
 				  $recipient,
 				  $ccrecipients,
 				  undef);
@@ -2127,6 +2128,7 @@ unless (GetOptions(
 	'encoding=s'	=> \$opt_encoding,
 
 	'module=s'	=> \$opt_module,
+	'module-description=s' => \$opt_module_description,
 	'prjtab=s'	=> \$opt_prjtab,
 	'rlog!'		=> \$opt_rlog,
 	'stampdir=s'	=> \$opt_stampdir,
@@ -2226,6 +2228,7 @@ deluxeloginfo [OPTION]...
    --root=ROOT         base repository path
    --prefix=DIR        repository prefix to strip away in logs
    --module=NAME       CVS module or subtree to work on
+                       (see also --module-description)
    --prjtab=FILE       use FILE as a prjtab file to find repositories
    --no-rlog           use loginfo files instead of remote repository access 
    --stampdir=DIR      where to store timestamps for cvs rlog and svn log
@@ -2264,6 +2267,8 @@ deluxeloginfo [OPTION]...
    --notext            disable text output
    --nohtml            disable HTML output
    --encoding=ENC      set mail text encoding to ENC (default: UTF-8)
+   --module-description
+                       set module/repository description used in subject
 
  Options for web links:
    --weburl=URL        set URL for web revision history viewer (default: none)

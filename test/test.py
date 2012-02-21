@@ -9,6 +9,8 @@ from GitBranchTest import *
 from SvnBranchTest import *
 from HtmlTest import *
 from FilenameTest import *
+from EmailHeaderTest import *
+
 
 if __name__ == '__main__':
     unittest.main()
