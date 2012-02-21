@@ -208,5 +208,136 @@ M 6ac1181609dc7ca112a942fce6e7cb6b45cd45a7  test_latin1.txt
 
 """)
 
+
+class TestFDifflimitGit(TestDLI.TestDLI):
+    repository_name = 'difflimit.git'
+    repository_type = 'git'
+    template_path = 'test/repository/difflimit.git.dump'
+
+    def testTruncateAllDiffs(self):
+        self.assertEqualDiff(self.runDli(start_revision='44106378d',
+                                         end_revision='4028c5f0d',
+                                         diff_limit=10),
+                             """
+ChangeSet Index:
+
+CS1 [#cs1] - Some changes.
+
+Some changes.
+
+M 4028c5f0d1bde195ae99fcdca1e6f11c305df7a9  file1.txt
+M 4028c5f0d1bde195ae99fcdca1e6f11c305df7a9  file2.txt
+M 4028c5f0d1bde195ae99fcdca1e6f11c305df7a9  file3.txt
+
+======================================================================
+--- a/file1.txt
++++ b/file1.txt
+@@ -7,12 +7,12 @@
+      7	file1
+      8	file1
+      9	file1
+-    10	file1
++    10	file1 modified
+     11	file1
+*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***
+======================================================================
+--- a/file2.txt
++++ b/file2.txt
+@@ -6,22 +6,22 @@
+      6	file2
+      7	file2
+      8	file2
+-     9	file2
++     9	file2 modified
+     10	file2
+*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***
+======================================================================
+--- a/file3.txt
++++ b/file3.txt
+@@ -1,7 +1,7 @@
+      1	file3
+      2	file3
+      3	file3
+-     4	file3
++     4	file3 modified
+      5	file3
+*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***
+
+
+""")
+
+    def testTruncateOneDiff(self):
+        self.assertEqualDiff(self.runDli(start_revision='44106378d',
+                                         end_revision='4028c5f0d',
+                                         diff_limit=20),
+                             """
+ChangeSet Index:
+
+CS1 [#cs1] - Some changes.
+
+Some changes.
+
+M 4028c5f0d1bde195ae99fcdca1e6f11c305df7a9  file1.txt
+M 4028c5f0d1bde195ae99fcdca1e6f11c305df7a9  file2.txt
+M 4028c5f0d1bde195ae99fcdca1e6f11c305df7a9  file3.txt
+
+======================================================================
+--- a/file1.txt
++++ b/file1.txt
+@@ -7,12 +7,12 @@
+      7	file1
+      8	file1
+      9	file1
+-    10	file1
++    10	file1 modified
+     11	file1
+     12	file1
+     13	file1
+     14	file1
+-    15	file1
++    15	file1 modified
+     16	file1
+     17	file1
+     18	file1
+
+======================================================================
+--- a/file2.txt
++++ b/file2.txt
+@@ -6,22 +6,22 @@
+      6	file2
+      7	file2
+      8	file2
+-     9	file2
++     9	file2 modified
+     10	file2
+     11	file2
+     12	file2
+     13	file2
+-    14	file2
++    14	file2 modified
+     15	file2
+     16	file2
+     17	file2
+     18	file2
+-    19	file2
+*** SIZE LIMIT EXCEEDED - DIFF TRUNCATED ***
+======================================================================
+--- a/file3.txt
++++ b/file3.txt
+@@ -1,7 +1,7 @@
+      1	file3
+      2	file3
+      3	file3
+-     4	file3
++     4	file3 modified
+      5	file3
+      6	file3
+      7	file3
+
+
+
+""")
+
+
 if __name__ == '__main__':
     unittest.main()

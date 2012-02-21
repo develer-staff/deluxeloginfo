@@ -1,0 +1,209 @@
+blob
+mark :1
+data 390
+     1	file1
+     2	file1
+     3	file1
+     4	file1
+     5	file1
+     6	file1
+     7	file1
+     8	file1
+     9	file1
+    10	file1
+    11	file1
+    12	file1
+    13	file1
+    14	file1
+    15	file1
+    16	file1
+    17	file1
+    18	file1
+    19	file1
+    20	file1
+    21	file1
+    22	file1
+    23	file1
+    24	file1
+    25	file1
+    26	file1
+    27	file1
+    28	file1
+    29	file1
+    30	file1
+
+blob
+mark :2
+data 520
+     1	file2
+     2	file2
+     3	file2
+     4	file2
+     5	file2
+     6	file2
+     7	file2
+     8	file2
+     9	file2
+    10	file2
+    11	file2
+    12	file2
+    13	file2
+    14	file2
+    15	file2
+    16	file2
+    17	file2
+    18	file2
+    19	file2
+    20	file2
+    21	file2
+    22	file2
+    23	file2
+    24	file2
+    25	file2
+    26	file2
+    27	file2
+    28	file2
+    29	file2
+    30	file2
+    31	file2
+    32	file2
+    33	file2
+    34	file2
+    35	file2
+    36	file2
+    37	file2
+    38	file2
+    39	file2
+    40	file2
+
+blob
+mark :3
+data 130
+     1	file3
+     2	file3
+     3	file3
+     4	file3
+     5	file3
+     6	file3
+     7	file3
+     8	file3
+     9	file3
+    10	file3
+
+reset refs/heads/master
+commit refs/heads/master
+mark :4
+author Mattia Barbon <mattia@develer.com> 1329819224 +0100
+committer Mattia Barbon <mattia@develer.com> 1329819314 +0100
+data 18
+Added test files.
+M 100644 :1 file1.txt
+M 100644 :2 file2.txt
+M 100644 :3 file3.txt
+
+blob
+mark :5
+data 408
+     1	file1
+     2	file1
+     3	file1
+     4	file1
+     5	file1
+     6	file1
+     7	file1
+     8	file1
+     9	file1
+    10	file1 modified
+    11	file1
+    12	file1
+    13	file1
+    14	file1
+    15	file1 modified
+    16	file1
+    17	file1
+    18	file1
+    19	file1
+    20	file1
+    21	file1
+    22	file1
+    23	file1
+    24	file1
+    25	file1
+    26	file1
+    27	file1
+    28	file1
+    29	file1
+    30	file1
+
+blob
+mark :6
+data 556
+     1	file2
+     2	file2
+     3	file2
+     4	file2
+     5	file2
+     6	file2
+     7	file2
+     8	file2
+     9	file2 modified
+    10	file2
+    11	file2
+    12	file2
+    13	file2
+    14	file2 modified
+    15	file2
+    16	file2
+    17	file2
+    18	file2
+    19	file2 modified
+    20	file2
+    21	file2
+    22	file2
+    23	file2
+    24	file2 modified
+    25	file2
+    26	file2
+    27	file2
+    28	file2
+    29	file2
+    30	file2
+    31	file2
+    32	file2
+    33	file2
+    34	file2
+    35	file2
+    36	file2
+    37	file2
+    38	file2
+    39	file2
+    40	file2
+
+blob
+mark :7
+data 139
+     1	file3
+     2	file3
+     3	file3
+     4	file3 modified
+     5	file3
+     6	file3
+     7	file3
+     8	file3
+     9	file3
+    10	file3
+
+commit refs/heads/master
+mark :8
+author Mattia Barbon <mattia@develer.com> 1329819379 +0100
+committer Mattia Barbon <mattia@develer.com> 1329819379 +0100
+data 14
+Some changes.
+from :4
+M 100644 :5 file1.txt
+M 100644 :6 file2.txt
+M 100644 :7 file3.txt
+
+reset refs/heads/master
+from :8
+
