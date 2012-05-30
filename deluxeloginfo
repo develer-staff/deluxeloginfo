@@ -2023,8 +2023,8 @@ sub dolog($$$)
 	{
 		# Maybe it's a local path, try some heuristics
 		$is_svn = (-f "$opt_root/format");
+		$is_git = (-d "$opt_root/objects" && -d "$opt_root/refs");
 		$is_hg = (-d "$opt_root/.hg/store");
-		#TODO: add git
 
 		print STDERR "Root appears to be a SVN local repository.\n" if $opt_verbose and $is_svn;
 	}
