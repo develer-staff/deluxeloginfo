@@ -38,7 +38,7 @@ my @text_mime_types =
 
 # Command line options
 my $opt_verbose;
-my $opt_logfile = '';
+my $opt_logfile = '/tmp/dli_log';
 my $opt_sender = "cvs\@develer.com";
 my $opt_recipient = '';
 my $opt_outfile = '';
@@ -1401,14 +1401,16 @@ sub format_output($$$\$)
 			# TODO move to the backend module when splitted
 			my $module_path = $module && !$is_svn ? "/$module" : "";
 
-			if ($state eq 'M')
-			{
-				$statelink = "<a href=\"$opt_weburl$module_path/$file.diff?r1=text&amp;tr1=$r1&amp;r2=text&amp;tr2=$r2&amp;diff_format=h\">$state</a>";
-			}
-			else # 'R' or 'A'
-			{
-				$statelink = "<a href=\"$opt_weburl$module_path/$file?rev=$rev&amp;content-type=text/vnd.viewcvs-markup\">$state</a>";
-			}
+			#aleph: quick & dirty hack, use trac instead of viewvc
+			$statelink = "<a href=\"$opt_weburl$module_path/changeset?new=$r1&#64;$file&amp;old=$r2&#64;$file\">$state</a>";
+			#if ($state eq 'M')
+			#{
+			#	#$statelink = "<a href=\"$opt_weburl$module_path/$file.diff?r1=text&amp;tr1=$r1&amp;r2=text&amp;tr2=$r2&amp;diff_format=h\">$state</a>";
+			#}
+			#else # 'R' or 'A'
+			#{
+			#	$statelink = "<a href=\"$opt_weburl$module_path/$file?rev=$rev&amp;content-type=text/vnd.viewcvs-markup\">$state</a>";
+			#}
 		}
 
 		my $color = "";
